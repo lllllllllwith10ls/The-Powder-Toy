@@ -16,8 +16,9 @@
 #include "simulation/ElementClasses.h"
 
 #include "common/tpt-minmax.h"
+#include "common/tpt-compat.h"
 
-GameSave::GameSave(GameSave & save):
+GameSave::GameSave(const GameSave & save):
     majorVersion(save.majorVersion),
 	waterEEnabled(save.waterEEnabled),
 	legacyEnable(save.legacyEnable),
@@ -579,7 +580,7 @@ void GameSave::CheckBsonFieldFloat(bson_iterator iter, const char *field, float 
 	{
 		if (bson_iterator_type(&iter) == BSON_DOUBLE)
 		{
-			*setting = float(bson_iterator_int(&iter));
+			*setting = float(bson_iterator_double(&iter));
 		}
 		else
 		{
@@ -1083,7 +1084,11 @@ void GameSave::readOPS(char * data, int dataLength)
 					else
 					{
 						//1 Byte room temp offset
-						tempTemp = (char)partsData[i++];
+						tempTemp = partsData[i++];
+						if (tempTemp >= 0x80)
+						{
+							tempTemp -= 0x100;
+						}
 						particles[newIndex].temp = tempTemp+294.15f;
 					}
 
