@@ -41,12 +41,33 @@ void Element::Element_SLTW()
 	LowTemperatureTransition = PT_ICEI;
 	HighTemperature = 383.0f;
 	HighTemperatureTransition = ST;
+	
+	DefaultProperties.salt[0] = PT_SODM;
+	DefaultProperties.salt[1] = PT_CHLR;
 
 	Update = &update;
 }
 
 static int update(UPDATE_FUNC_ARGS)
 {
+	if(parts[i].salt[0] == PT_CESM && parts[i].salt[1] == PT_GOLD)
+	{
+		if(RNG::Ref().between(0, 1) == 0)
+		{
+			sim->part_change_type(i,x,y,PT_BASE);
+			parts[i].salt[0] = PT_CESM;
+			parts[i].salt[1] = PT_WATR;
+			parts[i].life = 75;
+		}
+		else
+		{
+			sim->part_change_type(i,x,y,PT_GOLD);
+			parts[i].salt[0] = PT_NONE;
+			parts[i].salt[1] = PT_NONE;
+		}
+		parts[i].temp += 30.f;
+		return 0;
+	}
 	int r, rx, ry;
 	for (rx=-1; rx<2; rx++)
 		for (ry=-1; ry<2; ry++)
@@ -65,12 +86,29 @@ static int update(UPDATE_FUNC_ARGS)
 					break;
 				case PT_RBDM:
 				case PT_LRBD:
-					if ((sim->legacy_enable||parts[i].temp>(273.15f+12.0f)) && RNG::Ref().chance(1, 100))
+				case PT_CESM:
+				case PT_LCSM:
+					sim->part_change_type(i,x,y,PT_FIRE);
+					parts[i].life = 4;
+					parts[i].salt[0] = TYP(r);
+					parts[i].salt[1] = PT_WATR;
+					if(parts[i].salt[0] == PT_LRBD)
 					{
-						sim->part_change_type(i,x,y,PT_FIRE);
-						parts[i].life = 4;
-						parts[i].ctype = PT_WATR;
+						parts[i].salt[0] = PT_RBDM;
 					}
+					if(parts[i].salt[0] == PT_LCSM)
+					{
+						parts[i].salt[0] = PT_CESM;
+					}
+					parts[i].ctype = PT_BASE;
+					break;
+				case PT_FRAN:
+				case PT_LFRN:
+					sim->part_change_type(i,x,y,PT_FIRE);
+					sim->part_change_type(ID(r),x+rx,y+ry,PT_RDON);
+					parts[i].temp += 1000.f;
+					parts[ID(r)].temp += 1000.f;
+					sim->pv[y/CELL][x/CELL] += 2.0f * CFDS;
 					break;
 				case PT_FIRE:
 					if (parts[ID(r)].ctype!=PT_WATR)

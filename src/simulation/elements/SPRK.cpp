@@ -161,6 +161,24 @@ static int update(UPDATE_FUNC_ARGS)
 						else if (3 > rndstore)
 							sim->part_change_type(ID(r),x+rx,y+ry,PT_H2);
 					}
+					else if (TYP(r)==PT_LAVA && parts[ID(r)].ctype == PT_SALT)
+					{
+						int rndstore = RNG::Ref().gen()%100;
+						if (!rndstore)
+						{
+							sim->part_change_type(ID(r),x+rx,y+ry,parts[ID(r)].salt[0]);
+							parts[ID(r)].ctype = PT_NONE;
+							parts[ID(r)].salt[0] = PT_NONE;
+							parts[ID(r)].salt[1] = PT_NONE;
+						}
+						else if (2 > rndstore)
+						{
+							sim->part_change_type(ID(r),x+rx,y+ry,parts[ID(r)].salt[1]);
+							parts[ID(r)].ctype = PT_NONE;
+							parts[ID(r)].salt[0] = PT_NONE;
+							parts[ID(r)].salt[1] = PT_NONE;
+						}
+					}
 				}
 		break;
 	case PT_TUNG:

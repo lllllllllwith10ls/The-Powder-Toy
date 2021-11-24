@@ -115,14 +115,32 @@ static int update(UPDATE_FUNC_ARGS)
 							parts[ID(r)].tmp++;
 					}
 				}
-				else if (TYP(r)==PT_RBDM||TYP(r)==PT_LRBD)
+				else if (TYP(r)==PT_RBDM||TYP(r)==PT_LRBD||TYP(r)==PT_CESM||TYP(r)==PT_LCSM)
 				{
 					if ((sim->legacy_enable||parts[i].temp>(273.15f+12.0f)) && RNG::Ref().chance(1, 166))
 					{
 						sim->part_change_type(i,x,y,PT_FIRE);
 						parts[i].life = 4;
-						parts[i].ctype = PT_WATR;
+						parts[i].salt[0] = TYP(r);
+						parts[i].salt[1] = PT_WATR;
+						if(parts[i].salt[0] == PT_LRBD)
+						{
+							parts[i].salt[0] = PT_RBDM;
+						}
+						if(parts[i].salt[0] == PT_LCSM)
+						{
+							parts[i].salt[0] = PT_CESM;
+						}
+						parts[i].ctype = PT_BASE;
 					}
+				}
+				else if (TYP(r)==PT_FRAN || TYP(r)==PT_LFRN)
+				{
+					sim->part_change_type(i,x,y,PT_FIRE);
+					sim->part_change_type(ID(r),x+rx,y+ry,PT_RDON);
+					parts[i].temp += 1000.f;
+					parts[ID(r)].temp += 1000.f;
+					sim->pv[y/CELL][x/CELL] += 2.0f * CFDS;
 				}
 				else if (TYP(r)==PT_FIRE && parts[ID(r)].ctype!=PT_WATR){
 					sim->kill_part(ID(r));

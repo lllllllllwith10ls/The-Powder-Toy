@@ -1212,6 +1212,19 @@ void GameSave::readOPS(char * data, int dataLength)
 							break;
 						}
 					}
+					
+					if(fieldDescriptor & 0x8000)
+					{
+						if (i+3 >= partsDataLen)
+							throw ParseException(ParseException::Corrupt, "Ran past particle data buffer while loading salt");
+						int salt;
+						salt = partsData[i++];
+						salt |= (((unsigned)partsData[i++]) << 8);
+						particles[newIndex].salt[0] = salt;
+						salt = partsData[i++];
+						salt |= (((unsigned)partsData[i++]) << 8);
+						particles[newIndex].salt[1] = salt;
+					}
 
 					//Particle specific parsing:
 					switch(particles[newIndex].type)
@@ -2197,8 +2210,8 @@ char * GameSave::serialiseOPS(unsigned int & dataLength)
 
 	//Copy parts data
 	/* Field descriptor format:
-	 |      0       |      14       |      13       |      12       |      11       |      10       |       9       |       8       |       7       |       6       |       5       |       4       |       3       |       2       |       1       |       0       |
-	 |   RESERVED   |    type[2]    |     pavg      |   tmp[3+4]    |   tmp2[2]     |     tmp2      |   ctype[2]    |      vy       |      vx       |  decorations  |   ctype[1]    |    tmp[2]     |    tmp[1]     |    life[2]    |    life[1]    | temp dbl len  |
+	 |      0       |      15       |      14       |      13       |      12       |      11       |      10       |       9       |       8       |       7       |       6       |       5       |       4       |       3       |       2       |       1       |       0       |
+	 |   RESERVED   |     salt      |    type[2]    |     pavg      |   tmp[3+4]    |   tmp2[2]     |     tmp2      |   ctype[2]    |      vy       |      vx       |  decorations  |   ctype[1]    |    tmp[2]     |    tmp[1]     |    life[2]    |    life[1]    | temp dbl len  |
 	 life[2] means a second byte (for a 16 bit field) if life[1] is present
 	 last bit is reserved. If necessary, use it to signify that fieldDescriptor will have another byte
 	 That way, if we ever need a 17th bit, we won't have to change the save format
@@ -2380,6 +2393,18 @@ char * GameSave::serialiseOPS(unsigned int & dataLength)
 						partsData[partsDataLen++] = ((int)pavg1)>>8;
 						break;
 					}
+				}
+				//Salt, 4 bytes
+				if (particles[i].salt[0] || particles[i].salt[1])
+				{
+					int salt0 = particles[i].salt[0];
+					int salt1 = particles[i].salt[1];
+					
+					fieldDesc |= 1 << 15;
+					partsData[partsDataLen++] = salt0;
+					partsData[partsDataLen++] = salt0>>8;
+					partsData[partsDataLen++] = salt1;
+					partsData[partsDataLen++] = salt1>>8;
 				}
 
 				//Write the field descriptor

@@ -2146,6 +2146,9 @@ void GameView::OnDraw()
 				if (type == PT_LAVA && c->IsValidElement(ctype))
 				{
 					sampleInfo << "Molten " << c->ElementResolve(ctype, 0);
+					if (ctype == PT_SALT)
+						sampleInfo << " (" << c->ElementResolve(TYP(sample.particle.salt[0]), ID(sample.particle.salt[0])) 
+						<< " " << c->ElementResolve(TYP(sample.particle.salt[1]), ID(sample.particle.salt[1])) << "ide)";
 				}
 				else if ((type == PT_PIPE || type == PT_PPIP) && c->IsValidElement(ctype))
 				{
@@ -2184,9 +2187,20 @@ void GameView::OnDraw()
 					else if (type == PT_CLNE || type == PT_BCLN || type == PT_PCLN || type == PT_PBCN || type == PT_DTEC)
 						sampleInfo << " (" << c->ElementResolve(ctype, sample.particle.tmp) << ")";
 					else if (c->IsValidElement(ctype) && type != PT_GLOW && type != PT_WIRE && type != PT_SOAP && type != PT_LITH)
-						sampleInfo << " (" << c->ElementResolve(ctype, 0) << ")";
+					{
+						if (ctype == PT_SLTW || ctype == PT_SALT)
+						{	
+							sampleInfo << " (" << c->ElementResolve(ctype, 0) << ", " << c->ElementResolve(TYP(sample.particle.salt[0]), ID(sample.particle.salt[0])) 
+							<< " " << c->ElementResolve(TYP(sample.particle.salt[1]), ID(sample.particle.salt[1])) << "ide)";
+						} else {
+							sampleInfo << " (" << c->ElementResolve(ctype, 0) << ")";
+						}
+					}
 					else if (ctype)
 						sampleInfo << " (" << ctype << ")";
+					else if (type == PT_ACID || type == PT_BASE || type == PT_SALT || type == PT_SLTW)
+						sampleInfo << " (" << c->ElementResolve(TYP(sample.particle.salt[0]), ID(sample.particle.salt[0])) 
+						<< " " << c->ElementResolve(TYP(sample.particle.salt[1]), ID(sample.particle.salt[1])) << "ide)";
 				}
 				sampleInfo << ", Temp: " << (sample.particle.temp - 273.15f) << " C";
 				sampleInfo << ", Life: " << sample.particle.life;
@@ -2209,8 +2223,10 @@ void GameView::OnDraw()
 				// only elements that use .tmp2 show it in the debug HUD
 				if (type == PT_CRAY || type == PT_DRAY || type == PT_EXOT || type == PT_LIGH || type == PT_SOAP || type == PT_TRON
 						|| type == PT_VIBR || type == PT_VIRS || type == PT_WARP || type == PT_LCRY || type == PT_CBNW || type == PT_TSNS
-						|| type == PT_DTEC || type == PT_LSNS || type == PT_PSTN || type == PT_LDTC || type == PT_VSNS || type == PT_LITH)
-					sampleInfo << ", Tmp2: " << sample.particle.tmp2;
+						|| type == PT_DTEC || type == PT_LSNS || type == PT_PSTN || type == PT_LDTC || type == PT_VSNS || type == PT_LITH || type == PT_SODM)
+					sampleInfo << ", Tmp2: " << sample.particle.tmp2;	
+					
+					
 
 				sampleInfo << ", Pressure: " << sample.AirPressure;
 			}

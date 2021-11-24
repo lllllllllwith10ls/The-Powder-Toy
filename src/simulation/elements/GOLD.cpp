@@ -88,6 +88,22 @@ static int update(UPDATE_FUNC_ARGS)
 			}
 		}
 	}
+	//Find cesium
+	for (rx=-1; rx<2; rx++)
+		for (ry=-1; ry<2; ry++)
+			if (BOUNDS_CHECK && (rx || ry))
+			{
+				r = pmap[y+ry][x+rx];
+				if(TYP(r) == PT_CESM || TYP(r) == PT_LCSM)
+				{
+					sim->part_change_type(i,x,y,PT_SALT);
+					sim->part_change_type(ID(r),rx,ry,PT_SALT);
+					parts[i].salt[0] = PT_CESM;
+					parts[i].salt[1] = PT_GOLD;
+					parts[ID(r)].salt[0] = PT_CESM;
+					parts[ID(r)].salt[1] = PT_GOLD;
+				}
+			}
 	if (TYP(sim->photons[y][x]) == PT_NEUT)
 	{
 		if (RNG::Ref().chance(1, 7))

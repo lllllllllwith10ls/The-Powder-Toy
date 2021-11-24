@@ -3,11 +3,11 @@
 static int update(UPDATE_FUNC_ARGS);
 static int graphics(GRAPHICS_FUNC_ARGS);
 
-void Element::Element_ACID()
+void Element::Element_BASE()
 {
-	Identifier = "DEFAULT_PT_ACID";
-	Name = "ACID";
-	Colour = PIXPACK(0xED55FF);
+	Identifier = "DEFAULT_PT_BASE";
+	Name = "BASE";
+	Colour = PIXPACK(0x55ADFF);
 	MenuVisible = 1;
 	MenuSection = SC_LIQUID;
 	Enabled = 1;
@@ -45,8 +45,8 @@ void Element::Element_ACID()
 	HighTemperatureTransition = NT;
 
 	DefaultProperties.life = 75;
-	DefaultProperties.salt[0] = PT_H2;
-	DefaultProperties.salt[1] = PT_CHLR;
+	DefaultProperties.salt[0] = PT_SODM;
+	DefaultProperties.salt[1] = PT_WATR;
 
 	Update = &update;
 	Graphics = &graphics;
@@ -63,14 +63,28 @@ static int update(UPDATE_FUNC_ARGS)
 				if (!r)
 					continue;
 				int rt = TYP(r);
-				if (rt != PT_ACID && rt != PT_CAUS && rt != PT_CHLR && rt != PT_BASE)
+				if (rt != PT_BASE && rt != PT_CAUS)
 				{
 					if (rt == PT_PLEX || rt == PT_NITR || rt == PT_GUNP || rt == PT_RBDM || rt == PT_LRBD)
 					{
-						sim->part_change_type(i,x,y,PT_FIRE);
 						sim->part_change_type(ID(r),x+rx,y+ry,PT_FIRE);
 						parts[i].life = 4;
 						parts[ID(r)].life = 4;
+						if(rt == PT_RBDM || rt == PT_LRBD)
+						{
+							parts[ID(r)].life += RNG::Ref().between(1, 25);
+							if(parts[ID(r)].life > 74)
+							{
+								parts[ID(r)].life = 74;
+							}
+						}
+					}
+					else if (rt == PT_ACID)
+					{
+						sim->part_change_type(ID(r),x+rx,y+ry,PT_SLTW);
+						sim->part_change_type(i,x,y,PT_SLTW);
+						parts[i].salt[1] = parts[ID(r)].salt[1];
+						parts[ID(r)].salt[0] = parts[i].salt[0];
 					}
 					else if (rt == PT_WTRV)
 					{
@@ -83,7 +97,7 @@ static int update(UPDATE_FUNC_ARGS)
 					}
 					else if (rt != PT_CLNE && rt != PT_PCLN && parts[i].life >= 50 && RNG::Ref().chance(sim->elements[rt].Hardness, 1000))
 					{
-						if (sim->parts_avg(i, ID(r),PT_GLAS)!= PT_GLAS)//GLAS protects stuff from acid
+						if (sim->parts_avg(i, ID(r),PT_GLAS)!= PT_GLAS)//GLAS protects stuff from bases
 						{
 							float newtemp = ((60.0f-(float)sim->elements[rt].Hardness))*7.0f;
 							if(newtemp < 0){
@@ -93,8 +107,13 @@ static int update(UPDATE_FUNC_ARGS)
 							parts[i].life--;
 							switch (rt)
 							{
-							case PT_LITH:
+							case PT_LITH: case PT_SODM:
 								sim->part_change_type(ID(r), x + rx, y + ry, PT_H2);
+								parts[ID(r)].life += RNG::Ref().between(1, 25);
+								if(parts[ID(r)].life > 74)
+								{
+									parts[ID(r)].life = 74;
+								}
 								break;
 
 							default:
@@ -119,7 +138,7 @@ static int update(UPDATE_FUNC_ARGS)
 			r = pmap[y+ry][x+rx];
 			if (!r)
 				continue;
-			if (TYP(r) == PT_ACID && (parts[i].life > parts[ID(r)].life) && parts[i].life>0)//diffusion
+			if (TYP(r) == PT_BASE && (parts[i].life > parts[ID(r)].life) && parts[i].life>0)//diffusion
 			{
 				int temp = parts[i].life - parts[ID(r)].life;
 				if (temp == 1)
@@ -143,11 +162,11 @@ static int graphics(GRAPHICS_FUNC_ARGS)
 	int s = cpart->life;
 	if (s>75) s = 75; //These two should not be here.
 	if (s<49) s = 49;
-	s = (s-49)*3;
+	s = (75-s)*3;
 	if (s==0) s = 1;
-	*colr += s*4;
+	*colr += s*1;
 	*colg += s*1;
-	*colb += s*2;
+	*colb += s*0;
 	*pixel_mode |= PMODE_BLUR;
 	return 0;
 }

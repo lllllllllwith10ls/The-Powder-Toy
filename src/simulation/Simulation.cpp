@@ -3705,7 +3705,7 @@ void Simulation::UpdateParticles(int start, int end)
 					         || t==PT_WTRV)
 						ctempl -= 2.0f*pv[y/CELL][x/CELL];
 					s = 1;
-
+					
 					//A fix for ice with ctype = 0
 					if ((t==PT_ICEI || t==PT_SNOW) && (!IsElement(parts[i].ctype) || parts[i].ctype==PT_ICEI || parts[i].ctype==PT_SNOW))
 						parts[i].ctype = PT_WATR;
@@ -3717,7 +3717,12 @@ void Simulation::UpdateParticles(int start, int end)
 						float dbt = ctempl - pt;
 						if (elements[t].HighTemperatureTransition != PT_NUM)
 						{
-							if (platent[t] <= (c_heat - (elements[t].HighTemperature - dbt)*c_Cm))
+							if (t == PT_SALT && platent[t] <= (c_heat - (saltMeltTemp(parts[i].salt[0],parts[i].salt[1]) - dbt)*c_Cm))
+							{
+								pt = (c_heat - platent[t])/c_Cm;
+								t = elements[t].HighTemperatureTransition;
+							}
+							else if (platent[t] <= (c_heat - (elements[t].HighTemperature - dbt)*c_Cm))
 							{
 								pt = (c_heat - platent[t])/c_Cm;
 								t = elements[t].HighTemperatureTransition;
@@ -3730,7 +3735,12 @@ void Simulation::UpdateParticles(int start, int end)
 						}
 #else
 						if (elements[t].HighTemperatureTransition != PT_NUM)
-							t = elements[t].HighTemperatureTransition;
+						{
+							if (t == PT_SALT && ctemph >= saltMeltTemp(parts[i].salt[0],parts[i].salt[1]))
+								t = elements[t].HighTemperatureTransition;
+							else if (t != PT_SALT)
+								t = elements[t].HighTemperatureTransition;
+						}
 #endif
 						else if (t == PT_ICEI || t == PT_SNOW)
 						{
@@ -3870,6 +3880,11 @@ void Simulation::UpdateParticles(int start, int end)
 								{
 									float pres = std::max((pv[y/CELL][x/CELL]+pv[(y-2)/CELL][x/CELL]+pv[(y+2)/CELL][x/CELL]+pv[y/CELL][(x-2)/CELL]+pv[y/CELL][(x+2)/CELL])*2.0f, 0.0f);
 									if (ctemph >= pres+elements[PT_CRMC].HighTemperature)
+										s = 0;
+								}
+								else if (parts[i].ctype == PT_SALT)
+								{
+									if (pt >= saltMeltTemp(parts[i].salt[0],parts[i].salt[1]))
 										s = 0;
 								}
 								else if (elements[parts[i].ctype].HighTemperatureTransition == PT_LAVA || parts[i].ctype == PT_HEAC)
@@ -5402,6 +5417,35 @@ String Simulation::BasicParticleInfo(Particle const &sample_part)
 		sampleInfo << ElementResolve(type, ctype);
 	}
 	return sampleInfo.Build();
+}
+
+
+float Simulation::saltMeltTemp(int salt1, int salt2)
+{
+	if(salt1 == PT_LITH && salt2 == PT_CHLR)
+	{
+		return 878.0f;
+	}
+	else if(salt1 == PT_SODM && salt2 == PT_CHLR)
+	{
+		return 1074.0f;
+	}
+	else if(salt1 == PT_RBDM && salt2 == PT_CHLR)
+	{
+		return 991.0f;
+	}
+	else if(salt1 == PT_CESM && salt2 == PT_CHLR)
+	{
+		return 918.0f;
+	}
+	else if(salt1 == PT_CESM && salt2 == PT_GOLD)
+	{
+		return 853.0f;
+	}
+	else
+	{
+		return 1173.0f;
+	}
 }
 
 bool Simulation::InBounds(int x, int y)

@@ -73,6 +73,12 @@ static int update(UPDATE_FUNC_ARGS)
 					parts[i].temp += RNG::Ref().between(0, 99);
 					parts[i].tmp |= 2;
 				}
+				else if (TYP(r)==PT_CESM && RNG::Ref().chance(1, 10000))
+				{
+					sim->create_part(i,x,y,PT_FIRE);
+					parts[i].temp += RNG::Ref().between(0, 99);
+					parts[i].tmp |= 2;
+				}
 			}
 	if (parts[i].temp > 9973.15 && sim->pv[y/CELL][x/CELL] > 250.0f)
 	{

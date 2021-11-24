@@ -1,13 +1,12 @@
 #include "simulation/ElementCommon.h"
 
-static int graphics(GRAPHICS_FUNC_ARGS);
-static float meltTemp(int salt1, int salt2);
+static int update(UPDATE_FUNC_ARGS);
 
-void Element::Element_SALT()
+void Element::Element_CSAU()
 {
-	Identifier = "DEFAULT_PT_SALT";
-	Name = "SALT";
-	Colour = PIXPACK(0xFFFFFF);
+	Identifier = "DEFAULT_PT_CSAU";
+	Name = "CSAU";
+	Colour = PIXPACK(0xF0F265);
 	MenuVisible = 1;
 	MenuSection = SC_POWDERS;
 	Enabled = 1;
@@ -30,7 +29,7 @@ void Element::Element_SALT()
 	Weight = 75;
 
 	HeatConduct = 110;
-	Description = "Salt, dissolves in water.";
+	Description = "Cesium auride, decomposes in water to form cesium and gold.";
 
 	Properties = TYPE_PART;
 
@@ -40,24 +39,18 @@ void Element::Element_SALT()
 	HighPressureTransition = NT;
 	LowTemperature = ITL;
 	LowTemperatureTransition = NT;
-	HighTemperature = MIN_TEMP;
+	HighTemperature = 1173.0f;
 	HighTemperatureTransition = PT_LAVA;
 	
-	DefaultProperties.salt[0] = PT_SODM;
-	DefaultProperties.salt[1] = PT_CHLR;
+	DefaultProperties.salt[0] = PT_CESM;
+	DefaultProperties.salt[1] = PT_GOLD;
 	
-	Graphics = &graphics;
+	Update = &update;
 }
 
 
-static int graphics(GRAPHICS_FUNC_ARGS)
+static int update(UPDATE_FUNC_ARGS)
 {
-	if(cpart->salt[0] == PT_CESM && cpart->salt[1] == PT_GOLD)
-	{
-		int colour = 0xF0F265;
-		*colr = PIXR(colour);
-		*colg = PIXG(colour);
-		*colb = PIXB(colour);
-	}
+	sim->part_change_type(i,x,y,PT_SALT);
 	return 0;
 }

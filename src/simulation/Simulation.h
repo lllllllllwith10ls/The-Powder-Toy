@@ -224,6 +224,7 @@ public:
 	String ElementResolve(int type, int ctype);
 	String BasicParticleInfo(Particle const &sample_part);
 
+	float saltMeltTemp(int salt1, int salt2);
 
 	struct CustomGOLData
 	{

@@ -67,6 +67,8 @@ static int update(UPDATE_FUNC_ARGS)
 					if (parts[i].temp > sim->elements[PT_SLTW].LowTemperature && RNG::Ref().chance(1, 200))
 					{
 						sim->part_change_type(i,x,y,PT_SLTW);
+						parts[i].salt[0] = parts[ID(r)].salt[0];
+						parts[i].salt[1] = parts[ID(r)].salt[1];
 						sim->part_change_type(ID(r),x+rx,y+ry,PT_SLTW);
 						return 0;
 					}

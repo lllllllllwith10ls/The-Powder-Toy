@@ -108,6 +108,10 @@ static int update(UPDATE_FUNC_ARGS)
 					}
 					if (hydrogenationFactor + carbonationFactor >= 10)
 					{
+						sim->part_change_type(i, x, y, PT_BASE);
+						parts[i].salt[0] = PT_LITH;
+						parts[i].salt[1] = PT_WATR;
+						parts[i].life = RNG::Ref().between(25, 75);
 						continue;
 					}
 					if (self.temp > 440.f)

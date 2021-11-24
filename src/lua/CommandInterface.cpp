@@ -104,6 +104,16 @@ int CommandInterface::GetPropertyOffset(ByteString key, FormatType & format)
 		offset = offsetof(Particle, pavg[1]);
 		format = FormatFloat;
 	}
+	else if (!key.compare("salt0"))
+	{
+		offset = offsetof(Particle, salt[0]);
+		format = FormatInt;
+	}
+	else if (!key.compare("salt1"))
+	{
+		offset = offsetof(Particle, salt[1]);
+		format = FormatInt;
+	}
 	return offset;
 }
 

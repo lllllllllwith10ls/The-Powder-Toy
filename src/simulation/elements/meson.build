@@ -191,6 +191,15 @@ simulation_elem_ids = [
 	[ 'VSNS',   189 ],
 	[ 'ROCK',   190 ],
 	[ 'LITH',   191 ],
+	[ 'CHLR',   192 ],
+	[ 'SODM',   193 ],
+	[ 'BASE',   194 ],
+	[ 'CESM',   195 ],
+	[ 'LCSM',   196 ],
+	[ 'CSAU',   197 ],
+	[ 'FRAN',   198 ],
+	[ 'RDON',   199 ],
+	[ 'LFRN',   200 ],
 ]
 
 simulation_elem_src = []

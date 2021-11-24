@@ -60,6 +60,8 @@ static int update(UPDATE_FUNC_ARGS)
 					if (RNG::Ref().chance(1, 50))
 					{
 						sim->part_change_type(i,x,y,PT_SLTW);
+						parts[i].salt[0] = parts[ID(r)].salt[0];
+						parts[i].salt[1] = parts[ID(r)].salt[1];
 						// on average, convert 3 DSTW to SLTW before SALT turns into SLTW
 						if (RNG::Ref().chance(1, 3))
 							sim->part_change_type(ID(r),x+rx,y+ry,PT_SLTW);
@@ -79,11 +81,29 @@ static int update(UPDATE_FUNC_ARGS)
 					break;
 				case PT_RBDM:
 				case PT_LRBD:
-					if ((sim->legacy_enable||parts[i].temp>12.0f) && RNG::Ref().chance(1, 100))
+				case PT_CESM:
+				case PT_LCSM:
+					sim->part_change_type(i,x,y,PT_FIRE);
+					parts[i].life = 4;
+					parts[i].salt[0] = TYP(r);
+					parts[i].salt[1] = PT_WATR;
+					if(parts[i].salt[0] == PT_LRBD)
 					{
-						sim->part_change_type(i,x,y,PT_FIRE);
-						parts[i].life = 4;
+						parts[i].salt[0] = PT_RBDM;
 					}
+					if(parts[i].salt[0] == PT_LCSM)
+					{
+						parts[i].salt[0] = PT_CESM;
+					}
+					parts[i].ctype = PT_BASE;
+					break;
+				case PT_FRAN:
+				case PT_LFRN:
+					sim->part_change_type(i,x,y,PT_FIRE);
+					sim->part_change_type(ID(r),x+rx,y+ry,PT_RDON);
+					parts[i].temp += 1000.f;
+					parts[ID(r)].temp += 1000.f;
+					sim->pv[y/CELL][x/CELL] += 2.0f * CFDS;
 					break;
 				case PT_FIRE:
 					sim->kill_part(ID(r));
