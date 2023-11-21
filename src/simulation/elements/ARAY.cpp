@@ -6,7 +6,7 @@ void Element::Element_ARAY()
 {
 	Identifier = "DEFAULT_PT_ARAY";
 	Name = "ARAY";
-	Colour = PIXPACK(0xFFBB00);
+	Colour = 0xFFBB00_rgb;
 	MenuVisible = 1;
 	MenuSection = SC_ELEC;
 	Enabled = 1;
@@ -53,7 +53,7 @@ static int update(UPDATE_FUNC_ARGS)
 	{
 		for (int ry = -1; ry <= 1; ry++)
 		{
-			if (BOUNDS_CHECK && (rx || ry))
+			if (rx || ry)
 			{
 				int r = pmap[y+ry][x+rx];
 				if (!r)
@@ -128,8 +128,8 @@ static int update(UPDATE_FUNC_ARGS)
 							{
 								if (parts[r].tmp != 6)
 								{
-									int Element_FILT_interactWavelengths(Particle* cpart, int origWl);
-									colored = Element_FILT_interactWavelengths(&parts[r], colored);
+									int Element_FILT_interactWavelengths(Simulation *sim, Particle* cpart, int origWl);
+									colored = Element_FILT_interactWavelengths(sim, &parts[r], colored);
 									if (!colored)
 										break;
 								}
@@ -150,8 +150,8 @@ static int update(UPDATE_FUNC_ARGS)
 											{
 												parts[np].temp = parts[r].temp;
 												parts[np].life = parts[r].tmp2;
-												parts[np].tmp = int(parts[r].pavg[0]);
-												parts[np].ctype = int(parts[r].pavg[1]);
+												parts[np].tmp = parts[r].tmp3;
+												parts[np].ctype = parts[r].tmp4;
 												parts[r].tmp = 0;
 												parts[r].life = 10;
 												break;

@@ -42,6 +42,16 @@ void OptionsController::SetGravityMode(int gravityMode)
 	model->SetGravityMode(gravityMode);
 }
 
+void OptionsController::SetCustomGravityX(float x)
+{
+	model->SetCustomGravityX(x);
+}
+
+void OptionsController::SetCustomGravityY(float y)
+{
+	model->SetCustomGravityY(y);
+}
+
 void OptionsController::SetAirMode(int airMode)
 {
 	model->SetAirMode(airMode);
@@ -57,19 +67,29 @@ void OptionsController::SetEdgeMode(int edgeMode)
 	model->SetEdgeMode(edgeMode);
 }
 
+void OptionsController::SetTemperatureScale(int temperatureScale)
+{
+	model->SetTemperatureScale(temperatureScale);
+}
+
 void OptionsController::SetFullscreen(bool fullscreen)
 {
 	model->SetFullscreen(fullscreen);
 }
 
-void OptionsController::SetAltFullscreen(bool altFullscreen)
+void OptionsController::SetChangeResolution(bool newChangeResolution)
 {
-	model->SetAltFullscreen(altFullscreen);
+	model->SetChangeResolution(newChangeResolution);
 }
 
 void OptionsController::SetForceIntegerScaling(bool forceIntegerScaling)
 {
 	model->SetForceIntegerScaling(forceIntegerScaling);
+}
+
+void OptionsController::SetBlurryScaling(bool newBlurryScaling)
+{
+	model->SetBlurryScaling(newBlurryScaling);
 }
 
 void OptionsController::SetShowAvatars(bool showAvatars)
@@ -80,6 +100,11 @@ void OptionsController::SetShowAvatars(bool showAvatars)
 void OptionsController::SetScale(int scale)
 {
 	model->SetScale(scale);
+}
+
+void OptionsController::SetGraveExitsConsole(bool graveExitsConsole)
+{
+	model->SetGraveExitsConsole(graveExitsConsole);
 }
 
 void OptionsController::SetResizable(bool resizable)
@@ -134,8 +159,10 @@ void OptionsController::Exit()
 
 OptionsController::~OptionsController()
 {
-	view->CloseActiveWindow();
 	delete model;
-	delete view;
+	if (view->CloseActiveWindow())
+	{
+		delete view;
+	}
 }
 

@@ -1,10 +1,5 @@
-#include "Config.h"
-#ifdef LUACONSOLE
-
 #include "LuaProgressBar.h"
-
 #include "LuaScriptInterface.h"
-
 #include "gui/interface/ProgressBar.h"
 
 const char LuaProgressBar::className[] = "ProgressBar";
@@ -27,7 +22,7 @@ LuaProgressBar::LuaProgressBar(lua_State * l) :
 	int sizeX = luaL_optinteger(l, 3, 10);
 	int sizeY = luaL_optinteger(l, 4, 10);
 	int value = luaL_optinteger(l, 5, 0);
-	String status = ByteString(luaL_optstring(l, 6, "")).FromUtf8();
+	String status = tpt_lua_optString(l, 6, "");
 
 	progressBar = new ui::ProgressBar(ui::Point(posX, posY), ui::Point(sizeX, sizeY), value, status);
 	component = progressBar;
@@ -53,12 +48,12 @@ int LuaProgressBar::status(lua_State * l)
 	int args = lua_gettop(l);
 	if(args)
 	{
-		progressBar->SetStatus(ByteString(lua_tostring(l, 1)).FromUtf8());
+		progressBar->SetStatus(tpt_lua_checkString(l, 1));
 		return 0;
 	}
 	else
 	{
-		lua_pushstring(l, progressBar->GetStatus().ToUtf8().c_str());
+		tpt_lua_pushString(l, progressBar->GetStatus());
 		return 1;
 	}
 }
@@ -66,4 +61,3 @@ int LuaProgressBar::status(lua_State * l)
 LuaProgressBar::~LuaProgressBar()
 {
 }
-#endif

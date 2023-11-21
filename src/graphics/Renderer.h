@@ -1,14 +1,14 @@
-#ifndef RENDERER_H
-#define RENDERER_H
-#include "Config.h"
-
-#include <vector>
-#ifdef OGLR
-#include "OpenGLHeaders.h"
-#endif
-
+#pragma once
 #include "Graphics.h"
 #include "gui/interface/Point.h"
+#include "common/tpt-rand.h"
+#include "SimulationConfig.h"
+#include "FindingElement.h"
+#include <optional>
+#include <array>
+#include <memory>
+#include <mutex>
+#include <vector>
 
 class RenderPreset;
 class Simulation;
@@ -35,11 +35,36 @@ struct gcache_item
 };
 typedef struct gcache_item gcache_item;
 
-class Renderer
+int HeatToColour(float temp);
+
+class Renderer: public RasterDrawMethods<Renderer>
 {
+	using Video = PlaneAdapter<std::array<pixel, WINDOW.X * RES.Y>, WINDOW.X, RES.Y>;
+	Video video;
+	std::array<pixel, WINDOW.X * RES.Y> persistentVideo;
+	Video warpVideo;
+
+	Rect<int> GetClipRect() const
+	{
+		return video.Size().OriginRect();
+	}
+
+	friend struct RasterDrawMethods<Renderer>;
+
 public:
+	Vec2<int> Size() const
+	{
+		return video.Size();
+	}
+
+	pixel const *Data() const
+	{
+		return video.data();
+	}
+
+	RNG rng;
+
 	Simulation * sim;
-	Graphics * g;
 	gcache_item *graphicscache;
 
 	std::vector<unsigned int> render_modes;
@@ -49,12 +74,10 @@ public:
 	unsigned int display_mode;
 	std::vector<RenderPreset> renderModePresets;
 	//
-	unsigned char fire_r[YRES/CELL][XRES/CELL];
-	unsigned char fire_g[YRES/CELL][XRES/CELL];
-	unsigned char fire_b[YRES/CELL][XRES/CELL];
+	unsigned char fire_r[YCELLS][XCELLS];
+	unsigned char fire_g[YCELLS][XCELLS];
+	unsigned char fire_b[YCELLS][XCELLS];
 	unsigned int fire_alpha[CELL*3][CELL*3];
-	char * flm_data;
-	char * plasma_data;
 	//
 	bool gravityZonesEnabled;
 	bool gravityFieldEnabled;
@@ -62,7 +85,7 @@ public:
 	bool blackDecorations;
 	bool debugLines;
 	pixel sampleColor;
-	int findingElement;
+	std::optional<FindingElement> findingElement;
 	int foundElements;
 
 	//Mouse position for debug information
@@ -80,10 +103,10 @@ public:
 	void RenderEnd();
 
 	void RenderZoom();
-	void DrawBlob(int x, int y, unsigned char cr, unsigned char cg, unsigned char cb);
+	void DrawBlob(Vec2<int> pos, RGB<uint8_t> colour);
 	void DrawWalls();
 	void DrawSigns();
-	void render_gravlensing(pixel * source);
+	void render_gravlensing(const Video &source);
 	void render_fire();
 	void prepare_alpha(int size, float intensity);
 	void render_parts();
@@ -94,51 +117,14 @@ public:
 	void FinaliseParts();
 
 	void ClearAccumulation();
-	void clearScreen(float alpha);
-	void SetSample(int x, int y);
-
-#ifdef OGLR
-	void checkShader(GLuint shader, const char * shname);
-	void checkProgram(GLuint program, const char * progname);
-	void loadShaders();
-	GLuint vidBuf,textTexture;
-	GLint prevFbo;
-#endif
-	pixel * vid;
-	pixel * persistentVid;
-	pixel * warpVid;
-	void blendpixel(int x, int y, int r, int g, int b, int a);
-	void addpixel(int x, int y, int r, int g, int b, int a);
+	void clearScreen();
+	void SetSample(Vec2<int> pos);
 
 	void draw_icon(int x, int y, Icon icon);
 
-	int drawtext_outline(int x, int y, String s, int r, int g, int b, int a);
-	int drawtext(int x, int y, String s, int r, int g, int b, int a);
-	int drawchar(int x, int y, String::value_type c, int r, int g, int b, int a);
-	int addchar(int x, int y, String::value_type c, int r, int g, int b, int a);
-
-	void xor_pixel(int x, int y);
-	void xor_line(int x, int y, int x2, int y2);
-	void xor_rect(int x, int y, int width, int height);
-	void xor_bitmap(unsigned char * bitmap, int x, int y, int w, int h);
-
-	void draw_line(int x, int y, int x2, int y2, int r, int g, int b, int a);
-	void drawrect(int x, int y, int width, int height, int r, int g, int b, int a);
-	void fillrect(int x, int y, int width, int height, int r, int g, int b, int a);
-	void drawcircle(int x, int y, int rx, int ry, int r, int g, int b, int a);
-	void fillcircle(int x, int y, int rx, int ry, int r, int g, int b, int a);
-	void clearrect(int x, int y, int width, int height);
-	void gradientrect(int x, int y, int width, int height, int r, int g, int b, int a, int r2, int g2, int b2, int a2);
-
-	void draw_image(pixel *img, int x, int y, int w, int h, int a);
-	void draw_image(const VideoBuffer & vidBuf, int w, int h, int a);
-	void draw_image(VideoBuffer * vidBuf, int w, int h, int a);
-
 	VideoBuffer DumpFrame();
 
-	void drawblob(int x, int y, unsigned char cr, unsigned char cg, unsigned char cb);
-
-	pixel GetPixel(int x, int y);
+	pixel GetPixel(Vec2<int> pos) const;
 	//...
 	//Display mode modifiers
 	void CompileDisplayMode();
@@ -159,33 +145,28 @@ public:
 	int GetGridSize() { return gridSize; }
 	void SetGridSize(int value) { gridSize = value; }
 
-	static VideoBuffer * WallIcon(int wallID, int width, int height);
+	static std::unique_ptr<VideoBuffer> WallIcon(int wallID, Vec2<int> size);
 
-	Renderer(Graphics * g, Simulation * sim);
+	Renderer(Simulation * sim);
 	~Renderer();
+
+#define RENDERER_TABLE(name) \
+	static std::vector<RGB<uint8_t>> name; \
+	static inline RGB<uint8_t> name ## At(int index) \
+	{ \
+		auto size = int(name.size()); \
+		if (index <        0) index =        0; \
+		if (index > size - 1) index = size - 1; \
+		return name[index]; \
+	}
+	RENDERER_TABLE(flameTable)
+	RENDERER_TABLE(plasmaTable)
+	RENDERER_TABLE(heatTable)
+	RENDERER_TABLE(clfmTable)
+	RENDERER_TABLE(firwTable)
+#undef RENDERER_TABLE
+	static void PopulateTables();
 
 private:
 	int gridSize;
-#ifdef OGLR
-	GLuint zoomTex, airBuf, fireAlpha, glowAlpha, blurAlpha, partsFboTex, partsFbo, partsTFX, partsTFY, airPV, airVY, airVX;
-	GLuint fireProg, airProg_Pressure, airProg_Velocity, airProg_Cracker, lensProg;
-	GLuint fireV[(YRES*XRES)*2];
-	GLfloat fireC[(YRES*XRES)*4];
-	GLuint smokeV[(YRES*XRES)*2];
-	GLfloat smokeC[(YRES*XRES)*4];
-	GLuint blobV[(YRES*XRES)*2];
-	GLfloat blobC[(YRES*XRES)*4];
-	GLuint blurV[(YRES*XRES)*2];
-	GLfloat blurC[(YRES*XRES)*4];
-	GLuint glowV[(YRES*XRES)*2];
-	GLfloat glowC[(YRES*XRES)*4];
-	GLuint flatV[(YRES*XRES)*2];
-	GLfloat flatC[(YRES*XRES)*4];
-	GLuint addV[(YRES*XRES)*2];
-	GLfloat addC[(YRES*XRES)*4];
-	GLfloat lineV[(((YRES*XRES)*2)*6)];
-	GLfloat lineC[(((YRES*XRES)*2)*6)];
-#endif
 };
-
-#endif

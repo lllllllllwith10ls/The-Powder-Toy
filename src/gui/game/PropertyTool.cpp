@@ -1,7 +1,8 @@
 #include "Tool.h"
 
-#include "client/Client.h"
+#include "prefs/GlobalPrefs.h"
 #include "Menu.h"
+#include "Format.h"
 
 #include "gui/game/GameModel.h"
 #include "gui/Style.h"
@@ -11,7 +12,6 @@
 #include "gui/interface/Label.h"
 #include "gui/interface/Textbox.h"
 #include "gui/interface/DropDown.h"
-#include "gui/interface/Keys.h"
 #include "gui/dialogues/ErrorMessage.h"
 
 #include "simulation/GOLString.h"
@@ -21,39 +21,25 @@
 
 #include "graphics/Graphics.h"
 
+#include "Config.h"
 #include <iostream>
-
-void ParseFloatProperty(String value, float &out)
-{
-	if (value.EndsWith("C"))
-	{
-		float v = value.SubstrFromEnd(1).ToNumber<float>();
-		out = v + 273.15;
-	}
-	else if(value.EndsWith("F"))
-	{
-		float v = value.SubstrFromEnd(1).ToNumber<float>();
-		out = (v-32.0f)*5/9+273.15f;
-	}
-	else
-	{
-		out = value.ToNumber<float>();
-	}
-#ifdef DEBUG
-	std::cout << "Got float value " << out << std::endl;
-#endif
-}
+#include <SDL.h>
 
 class PropertyWindow: public ui::Window
 {
+	void HandlePropertyChange();
+
 public:
 	ui::DropDown * property;
 	ui::Textbox * textField;
 	PropertyTool * tool;
 	Simulation *sim;
 	std::vector<StructProperty> properties;
+	std::optional<PropertyTool::Configuration> configuration;
 	PropertyWindow(PropertyTool *tool_, Simulation *sim);
-	void SetProperty(bool warn);
+	void SetProperty();
+	void CheckProperty();
+	void Update();
 	void OnDraw() override;
 	void OnKeyPress(int key, int scan, bool repeat, bool shift, bool ctrl, bool alt) override;
 	void OnTryExit(ExitMethod method) override;
@@ -78,164 +64,197 @@ sim(sim_)
 	okayButton->Appearance.VerticalAlign = ui::Appearance::AlignMiddle;
 	okayButton->Appearance.BorderInactive = ui::Colour(200, 200, 200);
 	okayButton->SetActionCallback({ [this] {
-		if (textField->GetText().length())
-		{
-			CloseActiveWindow();
-			SetProperty(true);
-			SelfDestruct();
-		}
+		CloseActiveWindow();
+		SetProperty();
+		SelfDestruct();
 	} });
 	AddComponent(okayButton);
 	SetOkayButton(okayButton);
 
 	property = new ui::DropDown(ui::Point(8, 25), ui::Point(Size.X-16, 16));
-	property->SetActionCallback({ [this] { FocusComponent(textField); } });
+	property->SetActionCallback({ [this] {
+		HandlePropertyChange();
+	} });
 	AddComponent(property);
 	for (int i = 0; i < int(properties.size()); i++)
 	{
 		property->AddOption(std::pair<String, int>(properties[i].Name.FromAscii(), i));
 	}
-	property->SetOption(Client::Ref().GetPrefInteger("Prop.Type", 0));
+
+	auto &prefs = GlobalPrefs::Ref();
+	property->SetOption(prefs.Get("Prop.Type", 0));
 
 	textField = new ui::Textbox(ui::Point(8, 46), ui::Point(Size.X-16, 16), "", "[value]");
 	textField->Appearance.HorizontalAlign = ui::Appearance::AlignLeft;
 	textField->Appearance.VerticalAlign = ui::Appearance::AlignMiddle;
-	textField->SetText(Client::Ref().GetPrefString("Prop.Value", ""));
+	textField->SetText(prefs.Get("Prop.Value", String("")));
+	textField->SetActionCallback({ [this]() {
+		Update();
+	} });
 	AddComponent(textField);
 	FocusComponent(textField);
-	SetProperty(false);
+	Update();
 
 	MakeActiveWindow();
 }
 
-void PropertyWindow::SetProperty(bool warn)
+void PropertyWindow::HandlePropertyChange()
 {
-	tool->validProperty = false;
-	if(property->GetOption().second!=-1 && textField->GetText().length() > 0)
-	{
-		tool->validProperty = true;
-		String value = textField->GetText().ToUpper();
-		try {
-			switch(properties[property->GetOption().second].Type)
-			{
-				case StructProperty::Integer:
-				case StructProperty::ParticleType:
-				{
-					int v;
-					if(value.length() > 2 && value.BeginsWith("0X"))
-					{
-						//0xC0FFEE
-						v = value.Substr(2).ToNumber<unsigned int>(Format::Hex());
-					}
-					else if(value.length() > 1 && value.BeginsWith("#"))
-					{
-						//#C0FFEE
-						v = value.Substr(1).ToNumber<unsigned int>(Format::Hex());
-					}
-					else
-					{
-						// Try to parse as particle name
-						v = sim->GetParticleType(value.ToUtf8());
+	FocusComponent(textField);
+	Update();
+}
 
-						// Try to parse special GoL rules
-						if (v == -1 && properties[property->GetOption().second].Name == "ctype")
+void PropertyWindow::Update()
+{
+	CheckProperty();
+	auto haveConfiguration = bool(configuration);
+	okayButton->Enabled = haveConfiguration;
+	textField->SetTextColour(haveConfiguration ? ui::Colour(255, 255, 255) : style::Colour::ErrorTitle);
+}
+
+void PropertyWindow::CheckProperty()
+{
+	configuration.reset();
+	PropertyTool::Configuration newConfiguration;
+	if (!(property->GetOption().second!=-1 && textField->GetText().length() > 0))
+	{
+		return;
+	}
+	String value = textField->GetText().ToUpper();
+	try
+	{
+		switch(properties[property->GetOption().second].Type)
+		{
+			case StructProperty::Integer:
+			case StructProperty::ParticleType:
+			{
+				int v;
+				if(value.length() > 2 && value.BeginsWith("0X"))
+				{
+					//0xC0FFEE
+					v = value.Substr(2).ToNumber<unsigned int>(Format::Hex());
+				}
+				else if(value.length() > 1 && value.BeginsWith("#"))
+				{
+					//#C0FFEE
+					v = value.Substr(1).ToNumber<unsigned int>(Format::Hex());
+				}
+				else
+				{
+					// Try to parse as particle name
+					v = sim->GetParticleType(value.ToUtf8());
+
+					// Try to parse special GoL rules
+					if (v == -1 && properties[property->GetOption().second].Name == "ctype")
+					{
+						if (value.length() > 1 && value.BeginsWith("B") && value.Contains("/"))
 						{
-							if (value.length() > 1 && value.BeginsWith("B") && value.Contains("/"))
+							v = ParseGOLString(value);
+							if (v == -1)
 							{
-								v = ParseGOLString(value);
-								if (v == -1)
+								class InvalidGOLString : public std::exception
 								{
-									class InvalidGOLString : public std::exception
-									{
-									};
-									throw InvalidGOLString();
-								}
+								};
+								throw InvalidGOLString();
 							}
-							else
+						}
+						else
+						{
+							v = sim->GetParticleType(value.ToUtf8());
+							if (v == -1)
 							{
-								v = sim->GetParticleType(value.ToUtf8());
-								if (v == -1)
+								for (auto *elementTool : tool->gameModel.GetMenuList()[SC_LIFE]->GetToolList())
 								{
-									for (auto *elementTool : tool->gameModel->GetMenuList()[SC_LIFE]->GetToolList())
+									if (elementTool && elementTool->Name == value)
 									{
-										if (elementTool && elementTool->GetName() == value)
-										{
-											v = ID(elementTool->GetToolID());
-											break;
-										}
+										v = ID(elementTool->ToolID);
+										break;
 									}
 								}
 							}
 						}
-
-						// Parse as plain number
-						if (v == -1)
-						{
-							v = value.ToNumber<int>();
-						}
 					}
 
-					if (properties[property->GetOption().second].Name == "type" && (v < 0 || v >= PT_NUM || !sim->elements[v].Enabled))
+					// Parse as plain number
+					if (v == -1)
 					{
-						tool->validProperty = false;
-						if (warn)
-							new ErrorMessage("Could not set property", "Invalid particle type");
-						return;
+						v = value.ToNumber<int>();
 					}
-
-#ifdef DEBUG
-					std::cout << "Got int value " << v << std::endl;
-#endif
-
-					tool->propValue.Integer = v;
-					break;
 				}
-				case StructProperty::UInteger:
+
+				if (properties[property->GetOption().second].Name == "type" && (v < 0 || v >= PT_NUM || !sim->elements[v].Enabled))
 				{
-					unsigned int v;
-					if(value.length() > 2 && value.BeginsWith("0X"))
-					{
-						//0xC0FFEE
-						v = value.Substr(2).ToNumber<unsigned int>(Format::Hex());
-					}
-					else if(value.length() > 1 && value.BeginsWith("#"))
-					{
-						//#C0FFEE
-						v = value.Substr(1).ToNumber<unsigned int>(Format::Hex());
-					}
-					else
-					{
-						v = value.ToNumber<unsigned int>();
-					}
-#ifdef DEBUG
-					std::cout << "Got uint value " << v << std::endl;
-#endif
-					tool->propValue.UInteger = v;
-					break;
-				}
-				case StructProperty::Float:
-				{
-					ParseFloatProperty(value, tool->propValue.Float);
-				}
-					break;
-				default:
-					tool->validProperty = false;
-					if (warn)
-						new ErrorMessage("Could not set property", "Invalid property");
 					return;
+				}
+				if constexpr (DEBUG)
+				{
+					std::cout << "Got int value " << v << std::endl;
+				}
+				newConfiguration.propValue = v;
+				break;
 			}
-			tool->propOffset = properties[property->GetOption().second].Offset;
-			tool->propType = properties[property->GetOption().second].Type;
-			tool->changeType = properties[property->GetOption().second].Name == "type";
-		} catch (const std::exception& ex) {
-			tool->validProperty = false;
-			if (warn)
-				new ErrorMessage("Could not set property", "Invalid value provided");
-			return;
+			case StructProperty::UInteger:
+			{
+				unsigned int v;
+				if(value.length() > 2 && value.BeginsWith("0X"))
+				{
+					//0xC0FFEE
+					v = value.Substr(2).ToNumber<unsigned int>(Format::Hex());
+				}
+				else if(value.length() > 1 && value.BeginsWith("#"))
+				{
+					//#C0FFEE
+					v = value.Substr(1).ToNumber<unsigned int>(Format::Hex());
+				}
+				else
+				{
+					v = value.ToNumber<unsigned int>();
+				}
+				if constexpr (DEBUG)
+				{
+					std::cout << "Got uint value " << v << std::endl;
+				}
+				newConfiguration.propValue = v;
+				break;
+			}
+			case StructProperty::Float:
+			{
+				if (properties[property->GetOption().second].Name == "temp")
+					newConfiguration.propValue = format::StringToTemperature(value, tool->gameModel.GetTemperatureScale());
+				else
+					newConfiguration.propValue = value.ToNumber<float>();
+			}
+				break;
+			default:
+				return;
 		}
-		Client::Ref().SetPref("Prop.Type", property->GetOption().second);
-		Client::Ref().SetPrefUnicode("Prop.Value", textField->GetText());
+		newConfiguration.prop = properties[property->GetOption().second];
+		newConfiguration.propertyIndex = property->GetOption().second;
+		newConfiguration.propertyValueStr = value;
+		newConfiguration.changeType = properties[property->GetOption().second].Name == "type";
 	}
+	catch (const std::exception& ex)
+	{
+		return;
+	}
+	configuration = newConfiguration;
+}
+
+void PropertyTool::SetConfiguration(std::optional<Configuration> newConfiguration)
+{
+	configuration = newConfiguration;
+	if (configuration)
+	{
+		auto &prefs = GlobalPrefs::Ref();
+		Prefs::DeferWrite dw(prefs);
+		prefs.Set("Prop.Type", configuration->propertyIndex);
+		prefs.Set("Prop.Value", configuration->propertyValueStr);
+	}
+}
+
+void PropertyWindow::SetProperty()
+{
+	tool->SetConfiguration(configuration);
 }
 
 void PropertyWindow::OnTryExit(ExitMethod method)
@@ -248,16 +267,22 @@ void PropertyWindow::OnDraw()
 {
 	Graphics * g = GetGraphics();
 
-	g->clearrect(Position.X-2, Position.Y-2, Size.X+3, Size.Y+3);
-	g->drawrect(Position.X, Position.Y, Size.X, Size.Y, 200, 200, 200, 255);
+	g->DrawFilledRect(RectSized(Position - Vec2{ 1, 1 }, Size + Vec2{ 2, 2 }), 0x000000_rgb);
+	g->DrawRect(RectSized(Position, Size), 0xC8C8C8_rgb);
 }
 
 void PropertyWindow::OnKeyPress(int key, int scan, bool repeat, bool shift, bool ctrl, bool alt)
 {
 	if (key == SDLK_UP)
+	{
 		property->SetOption(property->GetOption().second-1);
+		HandlePropertyChange();
+	}
 	else if (key == SDLK_DOWN)
+	{
 		property->SetOption(property->GetOption().second+1);
+		HandlePropertyChange();
+	}
 }
 
 void PropertyTool::OpenWindow(Simulation *sim)
@@ -267,7 +292,7 @@ void PropertyTool::OpenWindow(Simulation *sim)
 
 void PropertyTool::SetProperty(Simulation *sim, ui::Point position)
 {
-	if(position.X<0 || position.X>XRES || position.Y<0 || position.Y>YRES || !validProperty)
+	if(position.X<0 || position.X>XRES || position.Y<0 || position.Y>YRES || !configuration)
 		return;
 	int i = sim->pmap[position.Y][position.X];
 	if(!i)
@@ -275,47 +300,77 @@ void PropertyTool::SetProperty(Simulation *sim, ui::Point position)
 	if(!i)
 		return;
 
-	if (changeType)
+	if (configuration->changeType)
 	{
-		sim->part_change_type(ID(i), int(sim->parts[ID(i)].x+0.5f), int(sim->parts[ID(i)].y+0.5f), propValue.Integer);
+		sim->part_change_type(ID(i), int(sim->parts[ID(i)].x+0.5f), int(sim->parts[ID(i)].y+0.5f), std::get<int>(configuration->propValue));
 		return;
 	}
 
-	switch (propType)
+	switch (configuration->prop.Type)
 	{
 		case StructProperty::Float:
-			*((float*)(((char*)&sim->parts[ID(i)])+propOffset)) = propValue.Float;
+			*((float*)(((char*)&sim->parts[ID(i)])+configuration->prop.Offset)) = std::get<float>(configuration->propValue);
 			break;
 		case StructProperty::ParticleType:
 		case StructProperty::Integer:
-			*((int*)(((char*)&sim->parts[ID(i)])+propOffset)) = propValue.Integer;
+			*((int*)(((char*)&sim->parts[ID(i)])+configuration->prop.Offset)) = std::get<int>(configuration->propValue);
 			break;
 		case StructProperty::UInteger:
-			*((unsigned int*)(((char*)&sim->parts[ID(i)])+propOffset)) = propValue.UInteger;
+			*((unsigned int*)(((char*)&sim->parts[ID(i)])+configuration->prop.Offset)) = std::get<unsigned int>(configuration->propValue);
 			break;
 		default:
 			break;
 	}
 }
 
-void PropertyTool::Draw(Simulation *sim, Brush *cBrush, ui::Point position)
+void PropertyTool::UpdateConfigurationFromParticle(const Particle &part)
 {
-	if(cBrush)
+	auto configuration = GetConfiguration();
+	switch (configuration->prop.Type)
 	{
-		int radiusX = cBrush->GetRadius().X, radiusY = cBrush->GetRadius().Y, sizeX = cBrush->GetSize().X, sizeY = cBrush->GetSize().Y;
-		unsigned char *bitmap = cBrush->GetBitmap();
-		for(int y = 0; y < sizeY; y++)
-			for(int x = 0; x < sizeX; x++)
-				if(bitmap[(y*sizeX)+x] && (position.X+(x-radiusX) >= 0 && position.Y+(y-radiusY) >= 0 && position.X+(x-radiusX) < XRES && position.Y+(y-radiusY) < YRES))
-					SetProperty(sim, ui::Point(position.X+(x-radiusX), position.Y+(y-radiusY)));
+	case StructProperty::Float:
+		{
+			auto value = *((float*)(((char*)&part)+configuration->prop.Offset));;
+			configuration->propValue = value;
+			configuration->propertyValueStr = String::Build(value);
+		}
+		break;
+	case StructProperty::ParticleType:
+	case StructProperty::Integer:
+		{
+			auto value = *((int*)(((char*)&part)+configuration->prop.Offset));;
+			configuration->propValue = value;
+			configuration->propertyValueStr = String::Build(value);
+		}
+		break;
+	case StructProperty::UInteger:
+		{
+			auto value = *((unsigned int*)(((char*)&part)+configuration->prop.Offset));;
+			configuration->propValue = value;
+			configuration->propertyValueStr = String::Build(value);
+		}
+		break;
+	default:
+		break;
+	}
+	SetConfiguration(configuration);
+}
+
+void PropertyTool::Draw(Simulation *sim, Brush const &cBrush, ui::Point position)
+{
+	for (ui::Point off : cBrush)
+	{
+		ui::Point coords = position + off;
+		if (coords.X >= 0 && coords.Y >= 0 && coords.X < XRES && coords.Y < YRES)
+			SetProperty(sim, coords);
 	}
 }
 
-void PropertyTool::DrawLine(Simulation *sim, Brush *cBrush, ui::Point position, ui::Point position2, bool dragging)
+void PropertyTool::DrawLine(Simulation *sim, Brush const &cBrush, ui::Point position, ui::Point position2, bool dragging)
 {
 	int x1 = position.X, y1 = position.Y, x2 = position2.X, y2 = position2.Y;
 	bool reverseXY = abs(y2-y1) > abs(x2-x1);
-	int x, y, dx, dy, sy, rx = cBrush->GetRadius().X, ry = cBrush->GetRadius().Y;
+	int x, y, dx, dy, sy, rx = cBrush.GetRadius().X, ry = cBrush.GetRadius().Y;
 	float e = 0.0f, de;
 	if (reverseXY)
 	{
@@ -365,7 +420,7 @@ void PropertyTool::DrawLine(Simulation *sim, Brush *cBrush, ui::Point position, 
 	}
 }
 
-void PropertyTool::DrawRect(Simulation *sim, Brush *cBrush, ui::Point position, ui::Point position2)
+void PropertyTool::DrawRect(Simulation *sim, Brush const &cBrush, ui::Point position, ui::Point position2)
 {
 	int x1 = position.X, y1 = position.Y, x2 = position2.X, y2 = position2.Y;
 	int i, j;
@@ -386,8 +441,8 @@ void PropertyTool::DrawRect(Simulation *sim, Brush *cBrush, ui::Point position, 
 			SetProperty(sim, ui::Point(i, j));
 }
 
-void PropertyTool::DrawFill(Simulation *sim, Brush *cBrush, ui::Point position)
+void PropertyTool::DrawFill(Simulation *sim, Brush const &cBrush, ui::Point position)
 {
-	if (validProperty)
-		sim->flood_prop(position.X, position.Y, propOffset, propValue, propType);
+	if (configuration)
+		sim->flood_prop(position.X, position.Y, configuration->prop, configuration->propValue);
 }

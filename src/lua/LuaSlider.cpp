@@ -1,10 +1,5 @@
-#include "Config.h"
-#ifdef LUACONSOLE
-
 #include "LuaSlider.h"
-
 #include "LuaScriptInterface.h"
-
 #include "gui/interface/Slider.h"
 
 const char LuaSlider::className[] = "Slider";
@@ -21,8 +16,7 @@ Luna<LuaSlider>::RegType LuaSlider::methods[] = {
 };
 
 LuaSlider::LuaSlider(lua_State * l) :
-	LuaComponent(l),
-	onValueChangedFunction(l)
+	LuaComponent(l)
 {
 	int posX = luaL_optinteger(l, 1, 0);
 	int posY = luaL_optinteger(l, 2, 0);
@@ -77,9 +71,9 @@ void LuaSlider::triggerOnValueChanged()
 		lua_rawgeti(l, LUA_REGISTRYINDEX, onValueChangedFunction);
 		lua_rawgeti(l, LUA_REGISTRYINDEX, owner_ref);
 		lua_pushinteger(l, slider->GetValue());
-		if (lua_pcall(l, 2, 0, 0))
+		if (tpt_lua_pcall(l, 2, 0, 0, false))
 		{
-			ci->Log(CommandInterface::LogError, ByteString(lua_tostring(l, -1)).FromUtf8());
+			ci->Log(CommandInterface::LogError, tpt_lua_toString(l, -1));
 		}
 	}
 }
@@ -87,4 +81,3 @@ void LuaSlider::triggerOnValueChanged()
 LuaSlider::~LuaSlider()
 {
 }
-#endif

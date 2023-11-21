@@ -1,6 +1,5 @@
 #pragma once
 //http://lua-users.org/wiki/SimplerCppBinding
-
 #include "LuaCompat.h"
 
 template <typename T> class Luna
@@ -58,7 +57,7 @@ public:
 		{
 			/* edited by Snaily: shouldn't it be const RegType *l ... ? */
 			lua_pushstring(L, l->name);
-			lua_pushlightuserdata(L, (void*)l);
+			lua_pushinteger(L, l - T::methods);
 			lua_pushcclosure(L, thunk, 1);
 			lua_settable(L, methods);
 		}
@@ -117,7 +116,7 @@ private:
 		T *obj = check(L, 1);  // get 'self', or if you prefer, 'this'
 		lua_remove(L, 1);  // remove self so member function args start at index 1
 		// get member function from upvalue
-		RegType *l = static_cast<RegType*>(lua_touserdata(L, lua_upvalueindex(1)));
+		RegType *l = T::methods + lua_tointeger(L, lua_upvalueindex(1));
 		return (obj->*(l->mfunc))(L);  // call member function
 	}
 
@@ -152,7 +151,7 @@ private:
 		char buff[32];
 		userdataType *ud = static_cast<userdataType*>(lua_touserdata(L, 1));
 		T *obj = ud->pT;
-		sprintf(buff, "%p", obj);
+		snprintf(buff, sizeof(buff), "%p", obj);
 		lua_pushfstring(L, "%s (%s)", T::className, buff);
 		return 1;
 	}

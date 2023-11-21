@@ -6,39 +6,34 @@
 #include "simulation/SaveRenderer.h"
 #include "client/GameSave.h"
 
-ThumbnailRendererTask::ThumbnailRendererTask(GameSave *save, int width, int height, bool autoRescale, bool decorations, bool fire) :
-	Save(new GameSave(*save)),
-	Width(width),
-	Height(height),
-	Decorations(decorations),
-	Fire(fire),
-	AutoRescale(autoRescale)
+int ThumbnailRendererTask::queueSize = 0;
+
+int ThumbnailRendererTask::QueueSize()
 {
+	return queueSize;
+}
+
+ThumbnailRendererTask::ThumbnailRendererTask(GameSave const &save, Vec2<int> size, bool decorations, bool fire):
+	save(std::make_unique<GameSave>(save)),
+	size(size),
+	decorations(decorations),
+	fire(fire)
+{
+	queueSize += 1;
 }
 
 ThumbnailRendererTask::~ThumbnailRendererTask()
 {
+	queueSize -= 1;
 }
 
 bool ThumbnailRendererTask::doWork()
 {
-	thumbnail = std::unique_ptr<VideoBuffer>(SaveRenderer::Ref().Render(Save.get(), Decorations, Fire));
+	std::tie(thumbnail, std::ignore) = SaveRenderer::Ref().Render(save.get(), decorations, fire);
 	if (thumbnail)
 	{
-		if (AutoRescale)
-		{
-			int scaleX = (int)std::ceil((float)thumbnail->Width / Width);
-			int scaleY = (int)std::ceil((float)thumbnail->Height / Height);
-			int scale = scaleX > scaleY ? scaleX : scaleY;
-			int newWidth = thumbnail->Width / scale, newHeight = thumbnail->Height / scale;
-			thumbnail->Resize(newWidth, newHeight, true);
-			Width = newWidth;
-			Height = newHeight;
-		}
-		else
-		{
-			thumbnail->Resize(Width, Height, true);
-		}
+		thumbnail->ResizeToFit(size, true);
+		size = thumbnail->Size();
 		return true;
 	}
 	else

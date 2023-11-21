@@ -1,21 +1,19 @@
+#include "FontEditor.h"
+#include "bzip2/bz2wrap.h"
+#include "gui/interface/Textbox.h"
+#include "gui/interface/Engine.h"
+#include "gui/interface/Point.h"
+#include "gui/interface/Button.h"
+#include "gui/interface/ScrollPanel.h"
+#include "graphics/Graphics.h"
+#include "SimulationConfig.h"
 #include <stdexcept>
 #include <fstream>
 #include <iterator>
 #include <iomanip>
 #include <iostream>
-
-#include "FontEditor.h"
-#include "bzip2/bz2wrap.h"
-
-#include "Config.h"
-#include "gui/interface/Textbox.h"
-#include "gui/interface/Engine.h"
-#include "gui/interface/Point.h"
-#include "gui/interface/Button.h"
-#include "gui/interface/Mouse.h"
-#include "gui/interface/Keys.h"
-#include "gui/interface/ScrollPanel.h"
-#include "graphics/Graphics.h"
+#include <cstdint>
+#include <SDL.h>
 
 extern unsigned char *font_data;
 extern unsigned int *font_ptrs;
@@ -186,8 +184,8 @@ void FontEditor::PackData(
 	fontPtrs.clear();
 	fontRanges.clear();
 	bool first = true;
-	String::value_type rangeStart;
-	String::value_type prev;
+	String::value_type rangeStart = 0;
+	String::value_type prev = 0;
 	for(std::map<String::value_type, unsigned char>::const_iterator it = fontWidths.begin(); it != fontWidths.end(); it++)
 	{
 		String::value_type ch = it->first;
@@ -250,7 +248,7 @@ public:
 	}
 };
 
-#define FONT_SCALE 16
+constexpr int FONT_SCALE = 16;
 FontEditor::FontEditor(ByteString _dataFile):
 	ui::Window(ui::Point(0, 0), ui::Point(WINDOWW, WINDOWH)),
 	dataFile(_dataFile),
@@ -456,11 +454,11 @@ FontEditor::FontEditor(ByteString target, ByteString source):
 					for(int i = 0; i < tgtFontWidths[p.first]; i++)
 						same = same && tgtFontPixels[p.first][j][i] == srcFontPixels[p.first][j][i];
 			if(!same)
-				std::cout << "U+" << std::hex << p.first << " is present in both files and is different!" << std::endl;
+				std::cout << "U+" << std::hex << (unsigned int)p.first << " is present in both files and is different!" << std::endl;
 		}
 		else
 		{
-			std::cout << "Adding U+" << std::hex << p.first << " to the target" << std::endl;
+			std::cout << "Adding U+" << std::hex << (unsigned int)p.first << " to the target" << std::endl;
 			tgtFontWidths[p.first] = srcFontWidths[p.first];
 			tgtFontPixels[p.first] = p.second;
 		}
@@ -481,31 +479,31 @@ void FontEditor::OnDraw()
 		std::array<std::array<char, MAX_WIDTH>, FONT_H> const &pixels = fontPixels[currentChar];
 
 		int areaWidth = 8 + width * FONT_SCALE + 8;
-		g->fillrect(0, 0, areaWidth, 8 + FONT_H * FONT_SCALE + 4 + FONT_H + 4, bgR, bgG, bgB, 255);
+		g->DrawFilledRect(RectSized(Vec2{ 0, 0 }, Vec2{ areaWidth, 8 + FONT_H * FONT_SCALE + 4 + FONT_H + 4 }), RGB<uint8_t>(bgR, bgG, bgB));
 		for(int j = 0; j < FONT_H; j++)
 			for(int i = 0; i < width; i++)
-				g->fillrect(8 + i * FONT_SCALE, 8 + j * FONT_SCALE, FONT_SCALE - grid, FONT_SCALE - grid, fgR, fgG, fgB, pixels[j][i] * 255 / 3);
+				g->BlendFilledRect(RectSized(Vec2{ 8 + i * FONT_SCALE, 8 + j * FONT_SCALE }, Vec2{ FONT_SCALE - grid, FONT_SCALE - grid }), RGBA<uint8_t>(fgR, fgG, fgB, pixels[j][i] * 255 / 3));
 
 		for(int j = 0; j < FONT_H; j++)
 			for(int i = 0; i < width; i++)
-				g->blendpixel(8 + i, 8 + FONT_H * FONT_SCALE + 4 + j, fgR, fgG, fgB, pixels[j][i] * 255 / 3);
+				g->BlendPixel({ 8 + i, 8 + FONT_H * FONT_SCALE + 4 + j }, RGBA<uint8_t>(fgR, fgG, fgB, pixels[j][i] * 255 / 3));
 
 
 		if(rulers)
 		{
-			g->draw_line(0, 7 + 0 * FONT_SCALE , areaWidth - 1, 7 + 0 * FONT_SCALE, 128, 128, 128, 255);
-			g->draw_line(0, 7 + 2 * FONT_SCALE , areaWidth - 1, 7 + 2 * FONT_SCALE, 128, 128, 128, 255);
-			g->draw_line(0, 7 + 4 * FONT_SCALE , areaWidth - 1, 7 + 4 * FONT_SCALE, 128, 128, 128, 255);
-			g->draw_line(0, 7 + 9 * FONT_SCALE , areaWidth - 1, 7 + 9 * FONT_SCALE, 128, 128, 128, 255);
-			g->draw_line(0, 7 + 12 * FONT_SCALE , areaWidth - 1, 7 + 12 * FONT_SCALE, 128, 128, 128, 255);
+			g->DrawLine({ 0, 7 + 0 * FONT_SCALE }, { areaWidth - 1, 7 + 0 * FONT_SCALE }, 0x808080_rgb);
+			g->DrawLine({ 0, 7 + 2 * FONT_SCALE }, { areaWidth - 1, 7 + 2 * FONT_SCALE }, 0x808080_rgb);
+			g->DrawLine({ 0, 7 + 4 * FONT_SCALE }, { areaWidth - 1, 7 + 4 * FONT_SCALE }, 0x808080_rgb);
+			g->DrawLine({ 0, 7 + 9 * FONT_SCALE }, { areaWidth - 1, 7 + 9 * FONT_SCALE }, 0x808080_rgb);
+			g->DrawLine({ 0, 7 + 12 * FONT_SCALE }, { areaWidth - 1, 7 + 12 * FONT_SCALE }, 0x808080_rgb);
 
-			g->draw_line(7, 8, 7, 7 + FONT_H * FONT_SCALE, 128, 128, 128, 255);
-			g->draw_line(7 + width * FONT_SCALE, 8, 7 + width * FONT_SCALE, 7 + FONT_H * FONT_SCALE, 128, 128, 128, 255);
+			g->DrawLine({ 7, 8 }, { 7, 7 + FONT_H * FONT_SCALE }, 0x808080_rgb);
+			g->DrawLine({ 7 + width * FONT_SCALE, 8}, { 7 + width * FONT_SCALE, 7 + FONT_H * FONT_SCALE }, 0x808080_rgb);
 		}
 	}
 	else
 	{
-		g->drawtext(8, 8, "No character", 255, 0, 0, 255);
+		g->BlendText({ 8, 8 }, "No character", 0xFF0000_rgb .WithAlpha(255));
 	}
 }
 
@@ -531,7 +529,7 @@ void FontEditor::Translate(std::array<std::array<char, MAX_WIDTH>, FONT_H> &pixe
 	std::array<std::array<char, MAX_WIDTH>, FONT_H> old = pixels;
 	for(int j = 0; j < FONT_H; j++)
 		for(int i = 0; i < MAX_WIDTH; i++)
-			if(i - dx >= 0 && i - dx + 1 < MAX_WIDTH && j - dy >= 0 && j - dy + 1 < FONT_H)
+			if(i - dx >= 0 && i - dx < MAX_WIDTH && j - dy >= 0 && j - dy < FONT_H)
 				pixels[j][i] = old[j - dy][i - dx];
 			else
 				pixels[j][i] = 0;

@@ -1,24 +1,15 @@
 #include "TPTScriptInterface.h"
-
-#include <deque>
-#ifdef MACOSX
-#include <strings.h>
-#endif
-#include <cstdlib>
-#include <cmath>
-
-#include "Config.h"
-
+#include "Format.h"
 #include "simulation/Simulation.h"
 #include "simulation/Air.h"
 #include "simulation/ElementClasses.h"
-
 #include "gui/game/GameController.h"
 #include "gui/game/GameModel.h"
-
 #include "gui/interface/Engine.h"
-
 #include "common/tpt-compat.h"
+#include <deque>
+#include <cstdlib>
+#include <cmath>
 
 TPTScriptInterface::TPTScriptInterface(GameController * c, GameModel * m): CommandInterface(c, m)
 {
@@ -271,6 +262,21 @@ AnyType TPTScriptInterface::tptS_set(std::deque<String> * words)
 	//Selector
 	int newValue = 0;
 	float newValuef = 0.0f;
+	if (property.Value() == "temp")
+	{
+		// convert non-string temperature values to strings to format::StringToTemperature can take care of them
+		switch (value.GetType())
+		{
+		case TypeNumber:
+			value = StringType(String::Build(((NumberType)value).Value()));
+			break;
+		case TypeFloat:
+			value = StringType(String::Build(((FloatType)value).Value()));
+			break;
+		default:
+			break;
+		}
+	}
 	if (value.GetType() == TypeNumber)
 	{
 		newValuef = float(newValue = ((NumberType)value).Value());
@@ -283,13 +289,14 @@ AnyType TPTScriptInterface::tptS_set(std::deque<String> * words)
 	{
 		if (property.Value() == "temp")
 		{
-			String newString = ((StringType)value).Value();
-			if (newString.at(newString.length()-1) == 'C')
-				newValuef = atof(newString.SubstrFromEnd(1).ToUtf8().c_str())+273.15;
-			else if (newString.at(newString.length()-1) == 'F')
-				newValuef = (atof(newString.SubstrFromEnd(1).ToUtf8().c_str())-32.0f)*5/9+273.15f;
-			else
+			try
+			{
+				newValuef = format::StringToTemperature(((StringType)value).Value(), c->GetTemperatureScale());
+			}
+			catch (const std::exception &ex)
+			{
 				throw GeneralException("Invalid value for assignment");
+			}
 		}
 		else
 		{
@@ -297,7 +304,7 @@ AnyType TPTScriptInterface::tptS_set(std::deque<String> * words)
 			if (newValue < 0 || newValue >= PT_NUM)
 			{
 				// TODO: add element CAKE to invalidate this
-				if (!strcasecmp(((StringType)value).Value().ToUtf8().c_str(),"cake"))
+				if (((StringType)value).Value().ToUpper() == "CAKE")
 					throw GeneralException("Cake is a lie, not an element");
 				throw GeneralException("Invalid element");
 			}
@@ -498,7 +505,7 @@ AnyType TPTScriptInterface::tptS_load(std::deque<String> * words)
 
 	if (saveID.Value() > 0)
 	{
-		c->OpenSavePreview(saveID.Value(), 0, false);
+		c->OpenSavePreview(saveID.Value(), 0, savePreviewNormal);
 		return NumberType(0);
 	}
 	else
@@ -550,16 +557,16 @@ AnyType TPTScriptInterface::tptS_reset(std::deque<String> * words)
 
 	if (resetStr == "pressure")
 	{
-		for (int nx = 0; nx < XRES/CELL; nx++)
-			for (int ny = 0; ny < YRES/CELL; ny++)
+		for (int nx = 0; nx < XCELLS; nx++)
+			for (int ny = 0; ny < YCELLS; ny++)
 			{
 				sim->air->pv[ny][nx] = 0;
 			}
 	}
 	else if (resetStr == "velocity")
 	{
-		for (int nx = 0; nx < XRES/CELL; nx++)
-			for (int ny = 0; ny < YRES/CELL; ny++)
+		for (int nx = 0; nx < XCELLS; nx++)
+			for (int ny = 0; ny < YCELLS; ny++)
 			{
 				sim->air->vx[ny][nx] = 0;
 				sim->air->vy[ny][nx] = 0;
@@ -593,7 +600,3 @@ AnyType TPTScriptInterface::tptS_quit(std::deque<String> * words)
 
 	return NumberType(0);
 }
-
-TPTScriptInterface::~TPTScriptInterface() {
-}
-

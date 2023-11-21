@@ -1,10 +1,5 @@
-#include "Config.h"
-#ifdef LUACONSOLE
-
 #include "LuaButton.h"
-
 #include "LuaScriptInterface.h"
-
 #include "gui/interface/Button.h"
 
 const char LuaButton::className[] = "Button";
@@ -21,15 +16,14 @@ Luna<LuaButton>::RegType LuaButton::methods[] = {
 };
 
 LuaButton::LuaButton(lua_State * l) :
-	LuaComponent(l),
-	actionFunction(l)
+	LuaComponent(l)
 {
 	int posX = luaL_optinteger(l, 1, 0);
 	int posY = luaL_optinteger(l, 2, 0);
 	int sizeX = luaL_optinteger(l, 3, 10);
 	int sizeY = luaL_optinteger(l, 4, 10);
-	String text = ByteString(luaL_optstring(l, 5, "")).FromUtf8();
-	String toolTip = ByteString(luaL_optstring(l, 6, "")).FromUtf8();
+	String text = tpt_lua_optString(l, 5, "");
+	String toolTip = tpt_lua_optString(l, 6, "");
 
 	button = new ui::Button(ui::Point(posX, posY), ui::Point(sizeX, sizeY), text, toolTip);
 	component = button;
@@ -62,13 +56,12 @@ int LuaButton::text(lua_State * l)
 	int args = lua_gettop(l);
 	if(args)
 	{
-		luaL_checktype(l, 1, LUA_TSTRING);
-		button->SetText(ByteString(lua_tostring(l, 1)).FromUtf8());
+		button->SetText(tpt_lua_checkString(l, 1));
 		return 0;
 	}
 	else
 	{
-		lua_pushstring(l, button->GetText().ToUtf8().c_str());
+		tpt_lua_pushString(l, button->GetText());
 		return 1;
 	}
 }
@@ -79,9 +72,9 @@ void LuaButton::triggerAction()
 	{
 		lua_rawgeti(l, LUA_REGISTRYINDEX, actionFunction);
 		lua_rawgeti(l, LUA_REGISTRYINDEX, owner_ref);
-		if (lua_pcall(l, 1, 0, 0))
+		if (tpt_lua_pcall(l, 1, 0, 0, false))
 		{
-			ci->Log(CommandInterface::LogError, ByteString(lua_tostring(l, -1)).FromUtf8());
+			ci->Log(CommandInterface::LogError, tpt_lua_toString(l, -1));
 		}
 	}
 }
@@ -89,4 +82,3 @@ void LuaButton::triggerAction()
 LuaButton::~LuaButton()
 {
 }
-#endif

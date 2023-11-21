@@ -1,10 +1,5 @@
-#include "Config.h"
-#ifdef LUACONSOLE
-
 #include "LuaTextbox.h"
-
 #include "LuaScriptInterface.h"
-
 #include "gui/interface/Textbox.h"
 
 const char LuaTextbox::className[] = "Textbox";
@@ -21,16 +16,15 @@ Luna<LuaTextbox>::RegType LuaTextbox::methods[] = {
 };
 
 LuaTextbox::LuaTextbox(lua_State * l) :
-	LuaComponent(l),
-	onTextChangedFunction(l)
+	LuaComponent(l)
 {
 	this->l = l;
 	int posX = luaL_optinteger(l, 1, 0);
 	int posY = luaL_optinteger(l, 2, 0);
 	int sizeX = luaL_optinteger(l, 3, 10);
 	int sizeY = luaL_optinteger(l, 4, 10);
-	String text = ByteString(luaL_optstring(l, 5, "")).FromUtf8();
-	String placeholder = ByteString(luaL_optstring(l, 6, "")).FromUtf8();
+	String text = tpt_lua_optString(l, 5, "");
+	String placeholder = tpt_lua_optString(l, 6, "");
 
 	textbox = new ui::Textbox(ui::Point(posX, posY), ui::Point(sizeX, sizeY), text, placeholder);
 	textbox->Appearance.HorizontalAlign = ui::Appearance::AlignLeft;
@@ -65,9 +59,9 @@ void LuaTextbox::triggerOnTextChanged()
 	{
 		lua_rawgeti(l, LUA_REGISTRYINDEX, onTextChangedFunction);
 		lua_rawgeti(l, LUA_REGISTRYINDEX, owner_ref);
-		if (lua_pcall(l, 1, 0, 0))
+		if (tpt_lua_pcall(l, 1, 0, 0, false))
 		{
-			ci->Log(CommandInterface::LogError, ByteString(lua_tostring(l, -1)).FromUtf8());
+			ci->Log(CommandInterface::LogError, tpt_lua_optString(l, -1));
 		}
 	}
 }
@@ -77,12 +71,12 @@ int LuaTextbox::text(lua_State * l)
 	int args = lua_gettop(l);
 	if(args)
 	{
-		textbox->SetText(ByteString(lua_tostring(l, 1)).FromUtf8());
+		textbox->SetText(tpt_lua_checkString(l, 1));
 		return 0;
 	}
 	else
 	{
-		lua_pushstring(l, textbox->GetText().ToUtf8().c_str());
+		tpt_lua_pushString(l, textbox->GetText());
 		return 1;
 	}
 }
@@ -90,4 +84,3 @@ int LuaTextbox::text(lua_State * l)
 LuaTextbox::~LuaTextbox()
 {
 }
-#endif

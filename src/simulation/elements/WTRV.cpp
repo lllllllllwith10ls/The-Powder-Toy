@@ -6,7 +6,7 @@ void Element::Element_WTRV()
 {
 	Identifier = "DEFAULT_PT_WTRV";
 	Name = "WTRV";
-	Colour = PIXPACK(0xA0A0FF);
+	Colour = 0xA0A0FF_rgb;
 	MenuVisible = 1;
 	MenuSection = SC_GAS;
 	Enabled = 1;
@@ -48,12 +48,13 @@ void Element::Element_WTRV()
 
 static int update(UPDATE_FUNC_ARGS)
 {
-	int r, rx, ry;
-	for (rx=-1; rx<2; rx++)
-		for (ry=-1; ry<2; ry++)
-			if (BOUNDS_CHECK && (rx || ry))
+	for (auto rx = -1; rx <= 1; rx++)
+	{
+		for (auto ry = -1; ry <= 1; ry++)
+		{
+			if (rx || ry)
 			{
-				r = pmap[y+ry][x+rx];
+				auto r = pmap[y+ry][x+rx];
 				if (!r)
 					continue;
 				if ((TYP(r)==PT_RBDM||TYP(r)==PT_LRBD||TYP(r)==PT_CESM||TYP(r)==PT_LCSM) && (sim->legacy_enable||parts[i].temp>(273.15f+12.0f)) && RNG::Ref().chance(1, 100))
@@ -81,6 +82,8 @@ static int update(UPDATE_FUNC_ARGS)
 					sim->pv[y/CELL][x/CELL] += 2.0f * CFDS;
 				}
 			}
+		}
+	}
 	if(parts[i].temp>1273&&parts[i].ctype==PT_FIRE)
 		parts[i].temp-=parts[i].temp/1000;
 	return 0;

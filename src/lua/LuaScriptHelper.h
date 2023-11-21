@@ -1,6 +1,4 @@
-#ifndef LUASCRIPTHELPER_H_
-#define LUASCRIPTHELPER_H_
-
+#pragma once
 #include "simulation/Particle.h"
 #include "simulation/ElementDefs.h"
 #include "common/String.h"
@@ -9,19 +7,19 @@
 class GameModel;
 class GameController;
 class Simulation;
-class LuaScriptInterface;
+class CommandInterface;
 class Graphics;
 class Renderer;
 
 extern GameModel * luacon_model;
 extern GameController * luacon_controller;
 extern Simulation * luacon_sim;
-extern LuaScriptInterface * luacon_ci;
 extern Graphics * luacon_g;
 extern Renderer * luacon_ren;
 
 extern bool *luacon_currentCommand;
 extern String *luacon_lastError;
+extern bool luacon_hasLastError;
 
 class LuaSmartRef;
 extern int *lua_el_mode;
@@ -35,7 +33,6 @@ extern int tptParts, tptPartsMeta, tptElementTransitions, tptPartsCData, tptPart
 extern LuaSmartRef *tptPart;
 
 void luacon_hook(lua_State *L, lua_Debug *ar);
-int luacon_eval(const char *command);
 String luacon_geterror();
 void luacon_close();
 void initLegacyProps();
@@ -52,13 +49,6 @@ int luacon_transitionwrite(lua_State* l);
 //tpt. api
 int luatpt_getelement(lua_State *l);
 
-int luacon_graphicsReplacement(GRAPHICS_FUNC_ARGS, int i);
-int luatpt_graphics_func(lua_State *l);
-
-int luacon_elementReplacement(UPDATE_FUNC_ARGS);
-int luatpt_element_func(lua_State *l);
-
-int luatpt_error(lua_State* l);
 int luatpt_drawtext(lua_State* l);
 
 int luatpt_create(lua_State* l);
@@ -105,9 +95,6 @@ int luatpt_textwidth(lua_State* l);
 int luatpt_get_name(lua_State* l);
 
 int luatpt_delete(lua_State* l);
-int luatpt_input(lua_State* l);
-int luatpt_message_box(lua_State* l);
-int luatpt_confirm(lua_State* l);
 int luatpt_get_numOfParts(lua_State* l);
 int luatpt_start_getPartIndex(lua_State* l);
 int luatpt_next_getPartIndex(lua_State* l);
@@ -136,5 +123,3 @@ int luatpt_screenshot(lua_State* l);
 int luatpt_record(lua_State* l);
 
 int luatpt_perfectCircle(lua_State* l);
-
-#endif /* LUASCRIPTHELPER_H_ */

@@ -1,5 +1,5 @@
-#include <algorithm>
 #include "simulation/ElementCommon.h"
+#include <algorithm>
 
 static void initDeltaPos();
 static void changeType(ELEMENT_CHANGETYPE_FUNC_ARGS);
@@ -8,7 +8,7 @@ void Element::Element_ETRD()
 {
 	Identifier = "DEFAULT_PT_ETRD";
 	Name = "ETRD";
-	Colour = PIXPACK(0x404040);
+	Colour = 0x404040_rgb;
 	MenuVisible = 1;
 	MenuSection = SC_ELEC;
 	Enabled = 1;
@@ -123,7 +123,7 @@ int Element_ETRD_nearestSparkablePart(Simulation *sim, int targetId)
 					// deltaPos is sorted in order of ascending length, so foundDistance < checkDistance means all later items are further away.
 					break;
 				}
-				if (sim->InBounds(checkPos.X, checkPos.Y) && checkDistance <= foundDistance)
+				if (InBounds(checkPos.X, checkPos.Y) && checkDistance <= foundDistance)
 				{
 					int r = sim->pmap[checkPos.Y][checkPos.X];
 					if (r && TYP(r) == PT_ETRD && !parts[ID(r)].life && ID(r) != targetId && checkDistance < foundDistance)

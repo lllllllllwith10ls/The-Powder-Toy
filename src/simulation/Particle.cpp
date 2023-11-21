@@ -1,5 +1,6 @@
-#include <cstddef>
 #include "Particle.h"
+#include <cstddef>
+#include <cassert>
 
 std::vector<StructProperty> const &Particle::GetProperties()
 {
@@ -15,9 +16,47 @@ std::vector<StructProperty> const &Particle::GetProperties()
 		{ "flags"  , StructProperty::UInteger    , (intptr_t)(offsetof(Particle, flags  )) },
 		{ "tmp"    , StructProperty::Integer     , (intptr_t)(offsetof(Particle, tmp    )) },
 		{ "tmp2"   , StructProperty::Integer     , (intptr_t)(offsetof(Particle, tmp2   )) },
+		{ "tmp3"   , StructProperty::Integer     , (intptr_t)(offsetof(Particle, tmp3   )) },
+		{ "tmp4"   , StructProperty::Integer     , (intptr_t)(offsetof(Particle, tmp4   )) },
 		{ "dcolour", StructProperty::UInteger    , (intptr_t)(offsetof(Particle, dcolour)) },
-		{ "pavg0"  , StructProperty::Float       , (intptr_t)(offsetof(Particle, pavg[0])) },
-		{ "pavg1"  , StructProperty::Float       , (intptr_t)(offsetof(Particle, pavg[1])) },
 	};
 	return properties;
+}
+
+std::vector<StructPropertyAlias> const &Particle::GetPropertyAliases()
+{
+	static std::vector<StructPropertyAlias> aliases = {
+		{ "pavg0" , "tmp3"    },
+		{ "pavg1" , "tmp4"    },
+		{ "dcolor", "dcolour" },
+	};
+	return aliases;
+}
+
+std::vector<unsigned int> const &Particle::PossiblyCarriesType()
+{
+	struct DoOnce
+	{
+		std::vector<unsigned int> indices = {
+			FIELD_LIFE,
+			FIELD_CTYPE,
+			FIELD_TMP,
+			FIELD_TMP2,
+			FIELD_TMP3,
+			FIELD_TMP4,
+		};
+
+		DoOnce()
+		{
+			auto &properties = GetProperties();
+			for (auto index : indices)
+			{
+				// code that depends on PossiblyCarriesType only knows how to set ints
+				assert(properties[index].Type == StructProperty::Integer ||
+				       properties[index].Type == StructProperty::ParticleType);
+			}
+		}
+	};
+	static DoOnce doOnce;
+	return doOnce.indices;
 }

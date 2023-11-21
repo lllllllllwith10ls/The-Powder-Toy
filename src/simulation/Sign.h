@@ -1,9 +1,5 @@
-#ifndef SIGN_H_
-#define SIGN_H_
-#include "Config.h"
-
+#pragma once
 #include "common/String.h"
-
 #include <utility>
 
 class Simulation;
@@ -32,8 +28,6 @@ struct sign
 	String text;
 
 	sign(String text_, int x_, int y_, Justification justification_);
-	String getDisplayText(Simulation *sim, int &x, int &y, int &w, int &h, bool colorize = true, bool *v95 = nullptr);
-	std::pair<int, Type> split();
+	String getDisplayText(Simulation *sim, int &x, int &y, int &w, int &h, bool colorize = true, bool *v95 = nullptr) const;
+	std::pair<int, Type> split() const;
 };
-
-#endif

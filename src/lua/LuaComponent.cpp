@@ -1,11 +1,6 @@
-#include "Config.h"
-#ifdef LUACONSOLE
-
 #include "LuaComponent.h"
-
 #include "LuaScriptInterface.h"
 #include "LuaWindow.h"
-
 #include "gui/interface/Component.h"
 #include "gui/interface/Window.h"
 
@@ -23,10 +18,7 @@ LuaComponent::LuaComponent(lua_State * l) : component(nullptr), owner_ref(LUA_RE
 {
 	this->l = l; // I don't get how this doesn't cause crashes later on
 	
-	lua_pushstring(l, "Luacon_ci");
-	lua_gettable(l, LUA_REGISTRYINDEX);
-	ci = (LuaScriptInterface*)lua_touserdata(l, -1);
-	lua_pop(l, 1);
+	ci = static_cast<LuaScriptInterface *>(commandInterface);
 }
 
 int LuaComponent::position(lua_State * l)
@@ -94,4 +86,3 @@ LuaComponent::~LuaComponent()
 		delete component;
 	}
 }
-#endif

@@ -1,6 +1,6 @@
-#ifndef ELEMENTCLASS_H
-#define ELEMENTCLASS_H
-
+#pragma once
+#include <memory>
+#include "common/Vec2.h"
 #include "graphics/Pixel.h"
 #include "ElementDefs.h"
 #include "Particle.h"
@@ -15,7 +15,7 @@ class Element
 public:
 	ByteString Identifier;
 	String Name;
-	pixel Colour;
+	RGB<uint8_t> Colour;
 	int MenuVisible;
 	int MenuSection;
 	int Enabled;
@@ -40,6 +40,7 @@ public:
 	unsigned char HeatConduct;
 	String Description;
 	unsigned int Properties;
+	unsigned int CarriesTypeIn;
 
 	float LowPressure;
 	int LowPressureTransition;
@@ -59,7 +60,7 @@ public:
 
 	bool (*CtypeDraw) (CTYPEDRAW_FUNC_ARGS);
 
-	VideoBuffer * (*IconGenerator)(int, int, int);
+	std::unique_ptr<VideoBuffer> (*IconGenerator)(int, Vec2<int>);
 
 	Particle DefaultProperties;
 
@@ -78,5 +79,3 @@ public:
 #include "ElementNumbers.h"
 #undef ELEMENT_NUMBERS_DECLARE
 };
-
-#endif

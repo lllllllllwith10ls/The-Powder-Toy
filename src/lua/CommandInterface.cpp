@@ -2,23 +2,26 @@
 
 #include <cstring>
 #include <cstddef>
-#if !defined(WIN) || defined(__GNUC__)
-#include <strings.h>
-#endif
+#include <cassert>
 
+#include "Misc.h"
 #include "gui/game/GameModel.h"
-
 #include "simulation/Particle.h"
 
-CommandInterface::CommandInterface(GameController * c, GameModel * m) {
+CommandInterface *commandInterface = nullptr;
+
+CommandInterface::CommandInterface(GameController * c, GameModel * m)
+{
+	assert(!commandInterface);
+	commandInterface = this;
 	this->m = m;
 	this->c = c;
 }
 
-/*void CommandInterface::AttachGameModel(GameModel * m)
+CommandInterface::~CommandInterface()
 {
-	this->m = m;
-}*/
+	commandInterface = nullptr;
+}
 
 int CommandInterface::Command(String command)
 {
@@ -39,70 +42,37 @@ void CommandInterface::Log(LogType type, String message)
 int CommandInterface::GetPropertyOffset(ByteString key, FormatType & format)
 {
 	int offset = -1;
-	if (!key.compare("type"))
+	for (auto &alias : Particle::GetPropertyAliases())
 	{
-		offset = offsetof(Particle, type);
-		format = FormatElement;
+		if (key == alias.from)
+		{
+			key = alias.to;
+		}
 	}
-	else if (!key.compare("life"))
+	for (auto &prop : Particle::GetProperties())
 	{
-		offset = offsetof(Particle, life);
-		format = FormatInt;
-	}
-	else if (!key.compare("ctype"))
-	{
-		offset = offsetof(Particle, ctype);
-		format = FormatInt;
-	}
-	else if (!key.compare("temp"))
-	{
-		offset = offsetof(Particle, temp);
-		format = FormatFloat;
-	}
-	else if (!key.compare("tmp2"))
-	{
-		offset = offsetof(Particle, tmp2);
-		format = FormatInt;
-	}
-	else if (!key.compare("tmp"))
-	{
-		offset = offsetof(Particle, tmp);
-		format = FormatInt;
-	}
-	else if (!key.compare("vy"))
-	{
-		offset = offsetof(Particle, vy);
-		format = FormatFloat;
-	}
-	else if (!key.compare("vx"))
-	{
-		offset = offsetof(Particle, vx);
-		format = FormatFloat;
-	}
-	else if (!key.compare("x"))
-	{
-		offset = offsetof(Particle, x);
-		format = FormatFloat;
-	}
-	else if (!key.compare("y"))
-	{
-		offset = offsetof(Particle, y);
-		format = FormatFloat;
-	}
-	else if (!key.compare("dcolor") || !key.compare("dcolour"))
-	{
-		offset = offsetof(Particle, dcolour);
-		format = FormatInt;
-	}
-	else if (!key.compare("pavg0"))
-	{
-		offset = offsetof(Particle, pavg[0]);
-		format = FormatFloat;
-	}
-	else if (!key.compare("pavg1"))
-	{
-		offset = offsetof(Particle, pavg[1]);
-		format = FormatFloat;
+		if (key == prop.Name)
+		{
+			offset = prop.Offset;
+			switch (prop.Type)
+			{
+			case StructProperty::ParticleType:
+				format = byteStringEqualsLiteral(key, "type") ? FormatElement : FormatInt; // FormatElement is tightly coupled with "type"
+				break;
+
+			case StructProperty::Integer:
+			case StructProperty::UInteger:
+				format = FormatInt;
+				break;
+
+			case StructProperty::Float:
+				format = FormatFloat;
+				break;
+
+			default:
+				break;
+			}
+		}
 	}
 	else if (!key.compare("salt0"))
 	{
@@ -121,7 +91,3 @@ String CommandInterface::GetLastError()
 {
 	return lastError;
 }
-
-CommandInterface::~CommandInterface() {
-}
-

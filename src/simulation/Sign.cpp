@@ -11,7 +11,7 @@ sign::sign(String text_, int x_, int y_, Justification justification_):
 {
 }
 
-String sign::getDisplayText(Simulation *sim, int &x0, int &y0, int &w, int &h, bool colorize, bool *v95)
+String sign::getDisplayText(Simulation *sim, int &x0, int &y0, int &w, int &h, bool colorize, bool *v95) const
 {
 	String drawable_text;
 	auto si = std::make_pair(0, Type::Normal);
@@ -134,7 +134,7 @@ String sign::getDisplayText(Simulation *sim, int &x0, int &y0, int &w, int &h, b
 		}
 	}
 
-	w = Graphics::textwidth(drawable_text.c_str()) + 5;
+	w = Graphics::TextSize(drawable_text.c_str()).X + 4;
 	h = 15;
 	x0 = (ju == Right) ? x - w : (ju == Left) ? x : x - w/2;
 	y0 = (y > 18) ? y - 18 : y + 4;
@@ -142,7 +142,7 @@ String sign::getDisplayText(Simulation *sim, int &x0, int &y0, int &w, int &h, b
 	return drawable_text;
 }
 
-std::pair<int, sign::Type> sign::split()
+std::pair<int, sign::Type> sign::split() const
 {
 	String::size_type pipe = 0;
 	if (text.size() >= 4 && text.front() == '{' && text.back() == '}')

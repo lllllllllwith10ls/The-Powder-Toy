@@ -6,7 +6,7 @@ void Element::Element_VSNS()
 {
 	Identifier = "DEFAULT_PT_VSNS";
 	Name = "VSNS";
-	Colour = PIXPACK(0x7C9C00);
+	Colour = 0x7C9C00_rgb;
 	MenuVisible = 1;
 	MenuSection = SC_SENSOR;
 	Enabled = 1;
@@ -56,8 +56,10 @@ static int update(UPDATE_FUNC_ARGS)
 	{
 		parts[i].life = 0;
 		for (int rx = -2; rx <= 2; rx++)
+		{
 			for (int ry = -2; ry <= 2; ry++)
-				if (BOUNDS_CHECK && (rx || ry))
+			{
+				if (rx || ry)
 				{
 					int r = pmap[y + ry][x + rx];
 					if (!r)
@@ -73,6 +75,8 @@ static int update(UPDATE_FUNC_ARGS)
 						}
 					}
 				}
+			}
+		}
 	}
 	bool doSerialization = false;
 	bool doDeserialization = false;
@@ -105,7 +109,7 @@ static int update(UPDATE_FUNC_ARGS)
 					if (TYP(r) == PT_FILT)
 					{
 						int vel = parts[ID(r)].ctype - 0x10000000;
-						if (vel >= 0 && vel < SIM_MAXVELOCITY)
+						if (vel >= 0 && vel < MAX_VELOCITY)
 						{
 							doDeserialization = true;
 							Vs = float(vel);
@@ -126,8 +130,10 @@ static int update(UPDATE_FUNC_ARGS)
 			}
 
 	for (int rx = -1; rx <= 1; rx++)
+	{
 		for (int ry = -1; ry <= 1; ry++)
-			if (BOUNDS_CHECK && (rx || ry))
+		{
+			if (rx || ry)
 			{
 				int r = pmap[y + ry][x + rx];
 				if (!r)
@@ -166,6 +172,8 @@ static int update(UPDATE_FUNC_ARGS)
 					}
 				}
 			}
+		}
+	}
 
 	return 0;
 }

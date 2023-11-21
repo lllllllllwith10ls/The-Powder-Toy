@@ -9,7 +9,7 @@ void SimTool::Tool_CYCL()
 {
 	Identifier = "DEFAULT_TOOL_CYCL";
 	Name = "CYCL";
-	Colour = PIXPACK(0x132f5b);
+	Colour = 0x132f5b_rgb;
 	Description = "Cyclone, produces swirling air currents";
 	Perform = &perform;
 }
@@ -37,14 +37,14 @@ static int perform(Simulation * sim, Particle * cpart, int x, int y, int brushX,
 		*vy -= (strength / 16) * dvx*invsqr;
 
 		// Clamp velocities
-		if (*vx > 256.0f)
-			*vx = 256.0f;
-		else if (*vx < -256.0f)
-			*vx = -256.0f;
-		if (*vy > 256.0f)
-			*vy = 256.0f;
-		else if (*vy < -256.0f)
-			*vy = -256.0f;
+		if (*vx > MAX_PRESSURE)
+			*vx = MAX_PRESSURE;
+		else if (*vx < MIN_PRESSURE)
+			*vx = MIN_PRESSURE;
+		if (*vy > MAX_PRESSURE)
+			*vy = MAX_PRESSURE;
+		else if (*vy < MIN_PRESSURE)
+			*vy = MIN_PRESSURE;
 
 	}
 
