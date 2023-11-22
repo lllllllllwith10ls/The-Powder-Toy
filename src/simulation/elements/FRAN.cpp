@@ -6,7 +6,7 @@ void Element::Element_FRAN()
 {
 	Identifier = "DEFAULT_PT_FRAN";
 	Name = "FRAN";
-	Colour = PIXPACK(0xa5ff1f);
+	Colour = 0xa5ff1f_rgb;
 	MenuVisible = 1;
 	MenuSection = SC_NUCLEAR;
 	Enabled = 1;
@@ -53,10 +53,10 @@ static int update(UPDATE_FUNC_ARGS)
 	{
 		parts[i].temp += 1;
 	}
-	if ((RNG::Ref().chance(1, 100) && RNG::Ref().chance(int(5.0f * sim->pv[y / CELL][x / CELL]), 200)) || RNG::Ref().chance(1, 2000))
+	if ((sim->rng.chance(1, 100) && sim->rng.chance(int(5.0f * sim->pv[y / CELL][x / CELL]), 200)) || sim->rng.chance(1, 2000))
 	{
 		sim->create_part(-3, x, y, PT_NEUT);
-		if (RNG::Ref().chance(1, 20))
+		if (sim->rng.chance(1, 20))
 		{
 			sim->part_change_type(i,x,y,PT_RDON);
 		}

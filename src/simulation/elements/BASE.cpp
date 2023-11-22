@@ -7,7 +7,7 @@ void Element::Element_BASE()
 {
 	Identifier = "DEFAULT_PT_BASE";
 	Name = "BASE";
-	Colour = PIXPACK(0x55ADFF);
+	Colour = 0x55ADFF_rgb;
 	MenuVisible = 1;
 	MenuSection = SC_LIQUID;
 	Enabled = 1;
@@ -57,7 +57,7 @@ static int update(UPDATE_FUNC_ARGS)
 	int r, rx, ry, trade;
 	for (rx=-2; rx<3; rx++)
 		for (ry=-2; ry<3; ry++)
-			if (BOUNDS_CHECK && (rx || ry))
+			if (rx || ry)
 			{
 				r = pmap[y+ry][x+rx];
 				if (!r)
@@ -72,7 +72,7 @@ static int update(UPDATE_FUNC_ARGS)
 						parts[ID(r)].life = 4;
 						if(rt == PT_RBDM || rt == PT_LRBD)
 						{
-							parts[ID(r)].life += RNG::Ref().between(1, 25);
+							parts[ID(r)].life += sim->rng.between(1, 25);
 							if(parts[ID(r)].life > 74)
 							{
 								parts[ID(r)].life = 74;
@@ -88,14 +88,14 @@ static int update(UPDATE_FUNC_ARGS)
 					}
 					else if (rt == PT_WTRV)
 					{
-						if (RNG::Ref().chance(1, 250))
+						if (sim->rng.chance(1, 250))
 						{
 							sim->part_change_type(i, x, y, PT_CAUS);
-							parts[i].life = RNG::Ref().between(25, 74);
+							parts[i].life = sim->rng.between(25, 74);
 							sim->kill_part(ID(r));
 						}
 					}
-					else if (rt != PT_CLNE && rt != PT_PCLN && parts[i].life >= 50 && RNG::Ref().chance(sim->elements[rt].Hardness, 1000))
+					else if (rt != PT_CLNE && rt != PT_PCLN && parts[i].life >= 50 && sim->rng.chance(sim->elements[rt].Hardness, 1000))
 					{
 						if (sim->parts_avg(i, ID(r),PT_GLAS)!= PT_GLAS)//GLAS protects stuff from bases
 						{
@@ -109,7 +109,7 @@ static int update(UPDATE_FUNC_ARGS)
 							{
 							case PT_LITH: case PT_SODM:
 								sim->part_change_type(ID(r), x + rx, y + ry, PT_H2);
-								parts[ID(r)].life += RNG::Ref().between(1, 25);
+								parts[ID(r)].life += sim->rng.between(1, 25);
 								if(parts[ID(r)].life > 74)
 								{
 									parts[ID(r)].life = 74;
@@ -131,9 +131,9 @@ static int update(UPDATE_FUNC_ARGS)
 			}
 	for (trade = 0; trade<2; trade++)
 	{
-		rx = RNG::Ref().between(-2, 2);
-		ry = RNG::Ref().between(-2, 2);
-		if (BOUNDS_CHECK && (rx || ry))
+		rx = sim->rng.between(-2, 2);
+		ry = sim->rng.between(-2, 2);
+		if (rx || ry)
 		{
 			r = pmap[y+ry][x+rx];
 			if (!r)

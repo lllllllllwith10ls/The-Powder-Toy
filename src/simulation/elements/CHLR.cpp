@@ -6,7 +6,7 @@ void Element::Element_CHLR()
 {
 	Identifier = "DEFAULT_PT_CHLR";
 	Name = "CHLR";
-	Colour = PIXPACK(0x80FF00);
+	Colour = 0x80FF00_rgb;
 	MenuVisible = 1;
 	MenuSection = SC_GAS;
 	Enabled = 1;
@@ -49,42 +49,42 @@ static int update(UPDATE_FUNC_ARGS)
 {
 	for (int rx = -2; rx <= 2; rx++)
 		for (int ry = -2; ry <= 2; ry++)
-			if (BOUNDS_CHECK && (rx || ry))
+			if (rx || ry)
 			{
 				int r = pmap[y+ry][x+rx];
 				if (!r)
 					continue;
 				if (TYP(r)==PT_FIRE)
 				{
-					parts[ID(r)].temp += RNG::Ref().between(0, 99);
+					parts[ID(r)].temp += sim->rng.between(0, 99);
 					if (parts[ID(r)].tmp & 0x01)
 						parts[ID(r)].temp = 3473;
 					parts[ID(r)].tmp |= 2;
 
 					sim->create_part(i,x,y,PT_FIRE);
-					parts[i].temp += RNG::Ref().between(0, 99);
+					parts[i].temp += sim->rng.between(0, 99);
 					parts[i].tmp |= 2;
 				}
 				else if (TYP(r)==PT_PLSM && !(parts[ID(r)].tmp&4))
 				{
 					sim->create_part(i,x,y,PT_FIRE);
-					parts[i].temp += RNG::Ref().between(0, 99);
+					parts[i].temp += sim->rng.between(0, 99);
 					parts[i].tmp |= 2;
 				}
 				else if (TYP(r) == PT_WTRV || TYP(r) == PT_H2)
 				{
-					if (RNG::Ref().chance(1, 250))
+					if (sim->rng.chance(1, 250))
 					{
 						sim->part_change_type(i, x, y, PT_CAUS);
-						parts[i].life = RNG::Ref().between(25, 75);
+						parts[i].life = sim->rng.between(25, 75);
 						sim->kill_part(ID(r));
 					}
 				}
 				else if (TYP(r) == PT_CAUS)
 				{
-					if (RNG::Ref().chance(1, 250))
+					if (sim->rng.chance(1, 250))
 					{
-						parts[ID(r)].life += RNG::Ref().between(1, 25);
+						parts[ID(r)].life += sim->rng.between(1, 25);
 						sim->kill_part(i);
 						if(parts[ID(r)].life > 74)
 						{
@@ -95,12 +95,12 @@ static int update(UPDATE_FUNC_ARGS)
 				else if (TYP(r)==PT_DSTW || TYP(r)==PT_WATR)
 				{
 					sim->part_change_type(i, x, y, PT_ACID);
-					parts[i].life = RNG::Ref().between(25, 75);
+					parts[i].life = sim->rng.between(25, 75);
 					sim->kill_part(ID(r));
 				}
 				else if (TYP(r)==PT_ACID && parts[ID(r)].life < 74)
 				{
-					parts[ID(r)].life += RNG::Ref().between(1, 25);
+					parts[ID(r)].life += sim->rng.between(1, 25);
 					if(parts[ID(r)].life > 74)
 					{
 						parts[ID(r)].life = 74;
@@ -111,7 +111,7 @@ static int update(UPDATE_FUNC_ARGS)
 				{
 					sim->part_change_type(ID(r), x+rx, y+ry, PT_SALT);
 					sim->part_change_type(i, x, y, PT_FIRE);
-					parts[i].temp += RNG::Ref().between(0, 99);
+					parts[i].temp += sim->rng.between(0, 99);
 					parts[ID(r)].salt[0] = TYP(r);
 					switch(TYP(r))
 					{

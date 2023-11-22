@@ -111,7 +111,7 @@ static int update(UPDATE_FUNC_ARGS)
 						sim->part_change_type(i, x, y, PT_BASE);
 						parts[i].salt[0] = PT_LITH;
 						parts[i].salt[1] = PT_WATR;
-						parts[i].life = RNG::Ref().between(25, 75);
+						parts[i].life = sim->rng.between(25, 75);
 						continue;
 					}
 					if (self.temp > 440.f)

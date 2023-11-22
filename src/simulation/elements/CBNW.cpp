@@ -78,7 +78,7 @@ static int update(UPDATE_FUNC_ARGS)
 		}
 		parts[i].tmp--;
 	}
-	for (auto rx = -1; rx <= 1; rx++)
+	for (auto rx=-1; rx<2; rx++)
 	{
 		for (auto ry = -1; ry <= 1; ry++)
 		{
@@ -140,6 +140,7 @@ static int update(UPDATE_FUNC_ARGS)
 					sim->part_change_type(i,x,y,PT_FIRE);
 					sim->part_change_type(ID(r),x+rx,y+ry,PT_RDON);
 					parts[i].temp += 1000.f;
+					parts[i].life += 1500;
 					parts[ID(r)].temp += 1000.f;
 					sim->pv[y/CELL][x/CELL] += 2.0f * CFDS;
 				}

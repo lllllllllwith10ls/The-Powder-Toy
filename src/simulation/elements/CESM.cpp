@@ -4,7 +4,7 @@ void Element::Element_CESM()
 {
 	Identifier = "DEFAULT_PT_CESM";
 	Name = "CESM";
-	Colour = PIXPACK(0xD1E765);
+	Colour = 0xD1E765_rgb;
 	MenuVisible = 1;
 	MenuSection = SC_EXPLOSIVE;
 	Enabled = 1;

@@ -6,7 +6,7 @@ void Element::Element_RDON()
 {
 	Identifier = "DEFAULT_PT_RDON";
 	Name = "RDON";
-	Colour = PIXPACK(0xb8c797);
+	Colour = 0xb8c797_rgb;
 	MenuVisible = 1;
 	MenuSection = SC_NUCLEAR;
 	Enabled = 1;
@@ -51,10 +51,10 @@ static int update(UPDATE_FUNC_ARGS)
 	{
 		parts[i].temp += 0.1f;
 	}
-	if ((RNG::Ref().chance(1, 100) && RNG::Ref().chance(int(5.0f*sim->pv[y/CELL][x/CELL]), 500)) || RNG::Ref().chance(1, 5000))
+	if ((sim->rng.chance(1, 100) && sim->rng.chance(int(5.0f*sim->pv[y/CELL][x/CELL]), 500)) || sim->rng.chance(1, 5000))
 	{
 		sim->create_part(-3, x, y, PT_NEUT);
-		if (RNG::Ref().chance(1, 100))
+		if (sim->rng.chance(1, 100))
 		{
 			sim->part_change_type(i,x,y,PT_POLO);
 		}

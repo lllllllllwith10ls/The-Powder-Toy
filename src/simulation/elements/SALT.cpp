@@ -1,7 +1,6 @@
 #include "simulation/ElementCommon.h"
 
 static int graphics(GRAPHICS_FUNC_ARGS);
-static float meltTemp(int salt1, int salt2);
 
 void Element::Element_SALT()
 {
@@ -54,10 +53,10 @@ static int graphics(GRAPHICS_FUNC_ARGS)
 {
 	if(cpart->salt[0] == PT_CESM && cpart->salt[1] == PT_GOLD)
 	{
-		int colour = 0xF0F265;
-		*colr = PIXR(colour);
-		*colg = PIXG(colour);
-		*colb = PIXB(colour);
+		auto colour = 0xF0F265_rgb;
+		*colr = colour.Red;
+		*colg = colour.Green;
+		*colb = colour.Blue;
 	}
 	return 0;
 }

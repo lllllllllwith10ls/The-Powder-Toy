@@ -66,7 +66,7 @@ static int update(UPDATE_FUNC_ARGS)
 					if (sim->rng.chance(1, 3))
 						sim->part_change_type(ID(r),x+rx,y+ry,PT_SLTW);
 				}
-				else if ((TYP(r)==PT_RBDM||TYP(r)==PT_LRBD||TYP(r)==PT_CESM||TYP(r)==PT_LCSM) && (sim->legacy_enable||parts[i].temp>(273.15f+12.0f)) && RNG::Ref().chance(1, 100))
+				else if ((TYP(r)==PT_RBDM||TYP(r)==PT_LRBD||TYP(r)==PT_CESM||TYP(r)==PT_LCSM) && (sim->legacy_enable||parts[i].temp>(273.15f+12.0f)) && sim->rng.chance(1, 100))
 				{
 					sim->part_change_type(i,x,y,PT_FIRE);
 					parts[i].life = 4;

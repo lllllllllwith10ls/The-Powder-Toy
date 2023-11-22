@@ -6,7 +6,7 @@ void Element::Element_CSAU()
 {
 	Identifier = "DEFAULT_PT_CSAU";
 	Name = "CSAU";
-	Colour = PIXPACK(0xF0F265);
+	Colour = 0xF0F265_rgb;
 	MenuVisible = 1;
 	MenuSection = SC_POWDERS;
 	Enabled = 1;

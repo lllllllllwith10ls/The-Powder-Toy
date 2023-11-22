@@ -170,7 +170,7 @@ static int update(UPDATE_FUNC_ARGS)
 					}
 					else if (TYP(r)==PT_LAVA && parts[ID(r)].ctype == PT_SALT)
 					{
-						int rndstore = RNG::Ref().gen()%100;
+						int rndstore = sim->rng.gen()%100;
 						if (!rndstore)
 						{
 							sim->part_change_type(ID(r),x+rx,y+ry,parts[ID(r)].salt[0]);

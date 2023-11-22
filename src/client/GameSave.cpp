@@ -992,6 +992,19 @@ void GameSave::readOPS(const std::vector<char> &data)
 					if (fieldDescriptor & 0x10000)
 						i += 4;
 				}
+				
+				if(fieldDescriptor & 0x20000)
+				{
+					if (i+3 >= partsDataLen)
+						throw ParseException(ParseException::Corrupt, "Ran past particle data buffer while loading salt");
+					int salt;
+					salt = partsData[i++];
+					salt |= (((unsigned)partsData[i++]) << 8);
+					particles[newIndex].salt[0] = salt;
+					salt = partsData[i++];
+					salt |= (((unsigned)partsData[i++]) << 8);
+					particles[newIndex].salt[1] = salt;
+				}
 
 				//Particle specific parsing:
 				switch(particles[newIndex].type)
@@ -2020,6 +2033,12 @@ std::pair<bool, std::vector<char>> GameSave::serialiseOPS() const
 					RESTRICTVERSION(97, 0);
 				}
 			}
+			
+			if (particles[i].salt[0] || particles[i].salt[1])
+			{
+				fieldDesc |= 1 << 15;
+				fieldDesc |= 1 << 17;
+			}
 
 			// Extra type byte if necessary
 			if (particles[i].type & 0xFF00)
@@ -2156,13 +2175,6 @@ std::pair<bool, std::vector<char>> GameSave::serialiseOPS() const
 				}
 			}
 
-			//Write the field descriptor
-			partsData[fieldDescLoc] = fieldDesc;
-			partsData[fieldDescLoc+1] = fieldDesc>>8;
-			if (fieldDesc & (1 << 15))
-			{
-				partsData[fieldDesc3Loc] = fieldDesc>>16;
-			}
 
 			//Salt, 4 bytes
 			if (particles[i].salt[0] || particles[i].salt[1])
@@ -2175,6 +2187,14 @@ std::pair<bool, std::vector<char>> GameSave::serialiseOPS() const
 				partsData[partsDataLen++] = salt0>>8;
 				partsData[partsDataLen++] = salt1;
 				partsData[partsDataLen++] = salt1>>8;
+			}
+
+			//Write the field descriptor
+			partsData[fieldDescLoc] = fieldDesc;
+			partsData[fieldDescLoc+1] = fieldDesc>>8;
+			if (fieldDesc & (1 << 15))
+			{
+				partsData[fieldDesc3Loc] = fieldDesc>>16;
 			}
 
 			if (particles[i].type == PT_SOAP)
